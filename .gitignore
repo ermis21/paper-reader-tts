@@ -34,6 +34,7 @@ tmp/
 # regenerated from workspace.sqlite on every mutation
 papers.json
 papers.json.part
+papers.json.lock
 papers.json.bak-*
 # your machine's overrides, sourced by ./start.sh
 local.env
@@ -67,3 +68,6 @@ Thumbs.db
 .vscode/
 *.swp
 *~
+
+# audio-quality lint reports (derived, per-machine)
+lint/

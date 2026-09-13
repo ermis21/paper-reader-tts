@@ -5,9 +5,11 @@
   "description": "Front-end regression tests for the paper-audiobook workspace UI. The app itself is Python; there is no JavaScript build step and the page ships as one self-contained HTML file.",
   "license": "AGPL-3.0-or-later",
   "scripts": {
-    "test": "node tests/check_page_script.js && node tests/dom_playback.test.js",
+    "test": "node tests/check_page_script.js && node tests/dom_playback.test.js && node tests/dom_playerux.test.js && node tests/dom_folders.test.js",
+    "test:folders": "node tests/dom_folders.test.js",
     "test:page": "node tests/check_page_script.js",
-    "test:dom": "node tests/dom_playback.test.js"
+    "test:dom": "node tests/dom_playback.test.js",
+    "test:ux": "node tests/dom_playerux.test.js"
   },
   "devDependencies": {
     "jsdom": "^30.0.0"

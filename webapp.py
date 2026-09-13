@@ -18,6 +18,8 @@ folder name ever becomes part of a path. Every file endpoint still resolves a
 flat `^[A-Za-z0-9._-]+$` id inside one fixed base directory and refuses anything
 that escapes it.
 """
+import hashlib
+import json
 import mimetypes
 import os
 import pathlib
@@ -27,9 +29,11 @@ import socket
 import subprocess
 import threading
 import time
+import unicodedata
 import uuid
 import wave
 from queue import Queue
+from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
@@ -41,6 +45,7 @@ import workspace as ws
 ROOT = pathlib.Path(__file__).resolve().parent
 PDFS, DROPIN, TEXT, CACHE, OUT, FILES = ws.PDFS, ws.DROPIN, ws.TEXT, ws.CACHE, ws.OUT, ws.FILES
 STAGE = ROOT / "tmp"
+LINT = ROOT / "lint"          # written by lint_audio.py; absent == feature off
 M4B_NAME = "audiobook.m4b"  # must match build.py
 
 # AGPL-3.0 section 13: users interacting with this program over a network must
@@ -115,6 +120,27 @@ def chunk_counts(pid: str):
     return n, s
 
 
+def lint_index() -> dict:
+    """`lint/index.json` -> {id: summary}, memoised on mtime like everything else.
+
+    Read-only and optional: if lint_audio.py has never run, this is `{}` and no
+    payload gains a `lint` key. One `stat()` per call, no parsing per item.
+    """
+    p = LINT / "index.json"
+    k = _stat_key(p)
+    if k is None:
+        return {}
+    hit = _memo.get(("lint", ""))
+    if hit and hit[0] == k:
+        return hit[1]
+    try:
+        d = json.loads(p.read_text()).get("papers", {})
+    except Exception:
+        d = {}
+    _memo[("lint", "")] = (k, d)
+    return d
+
+
 def size_of(p: pathlib.Path) -> int:
     try:
         return p.stat().st_size
@@ -150,12 +176,41 @@ def run_step(pid, stage, args):
     return True
 
 
+TITLE_LOCK = threading.Lock()
+
+
+def detect_titles(pids):
+    """Read the real title off each upload still `pending`, via titles.py.
+
+    A subprocess, never in-process: parsing an uploaded PDF is an attack on MuPDF
+    (SECURITY.md), and a crash or hang there must not take the server down. The
+    lock serialises an upload's batch, the startup sweep and the render worker --
+    which calls this first, so extract.py speaks the real title rather than the
+    filename. titles.py writes compare-and-set: a rename that lands first wins."""
+    with TITLE_LOCK:
+        todo = [p for p in pids if (ws.get_item(p) or {}).get("title_source") == "pending"]
+        if not todo:
+            return
+        try:
+            r = subprocess.run([PY, str(ROOT / "titles.py"), "--retitle", "--apply", "--only", *todo],
+                               cwd=ROOT, capture_output=True, text=True, timeout=60 + 10 * len(todo))
+            if r.returncode:
+                print(f"titles.py exited {r.returncode}: {(r.stderr or r.stdout)[-400:]}", flush=True)
+        except subprocess.TimeoutExpired:
+            print(f"titles.py timed out on {len(todo)} PDF(s); they keep their filenames", flush=True)
+        for p in todo:
+            it = ws.get_item(p)
+            if it and p in JOBS:
+                JOBS[p]["title"] = it["title"]
+
+
 def worker():
     while True:
         pid = Q.get()
         j = JOBS.setdefault(pid, {"title": pid})
         j.update(state="running", stage="extracting", pct=0)
         try:
+            detect_titles([pid])            # before extract.py, which reads the title aloud
             if not run_step(pid, "extracting", [str(ROOT / "extract.py"), "--only", pid]):
                 continue
             total = planned_chunks(pid)
@@ -185,6 +240,10 @@ def worker():
 
 
 threading.Thread(target=worker, daemon=True).start()
+# Uploads still named after their file -- rows from before titles were read off the
+# PDF, or an upload whose detection never got to run -- are titled in the background.
+threading.Thread(target=lambda: detect_titles(
+    [r["id"] for r in ws.list_items() if r.get("title_source") == "pending"]), daemon=True).start()
 
 
 def enqueue(pid, title):
@@ -205,7 +264,10 @@ def item_payload(r: dict) -> dict:
     out = {"id": pid, "kind": r["kind"], "folder_id": r["folder_id"],
            "title": r["title"], "name": r["name"], "order": r["ord"],
            "authors": r["authors"], "venue": r["venue"], "year": r["year"],
-           "created": r["created"]}
+           "created": r["created"],
+           # the name it was uploaded as, so search still finds "Chinchilla" after
+           # the card says "Training Compute-Optimal Large Language Models"
+           "orig_name": r.get("orig_name") or r["name"], "title_source": r.get("title_source", "")}
     if r["kind"] == "attachment":
         stored = r["stored"] or ""
         here = bool(stored) and (FILES / stored).exists()
@@ -226,8 +288,13 @@ def item_payload(r: dict) -> dict:
     out["audio"] = {"present": has_wav, "bytes": size_of(wav),
                     "seconds": round(wav_seconds(wav)) if has_wav else 0,
                     "url": f"/audio/{pid}.wav" if has_wav else None,
-                    "name": f"{pid}.wav" if has_wav else None}
+                    "name": ws.filename_for(r["title"], ".wav") if has_wav else None}
     out["chunks"], out["suspect"] = chunks, suspect
+    li = lint_index().get(pid)
+    if li:
+        out["lint"] = {"chunks": li.get("chunks", 0), "bad": li.get("bad", 0),
+                       "bad_secs": li.get("bad_secs", 0), "tier2": li.get("tier2", False),
+                       "classes": li.get("classes", {})}
     if job.get("state") in ("queued", "running"):
         out["state"] = "rendering" if job["state"] == "running" else "queued"
     elif has_wav:
@@ -247,6 +314,8 @@ def library():
     tot_s = sum(i["audio"]["seconds"] for i in papers)
     tot_c = sum(i["chunks"] for i in papers)
     susp = sum(i["suspect"] for i in papers)
+    lint_bad = sum(i.get("lint", {}).get("bad", 0) for i in papers)
+    lint_seen = sum(1 for i in papers if "lint" in i)
     ready = sum(1 for i in papers if i["audio"]["present"])
     jobs = [{"id": k, "title": v.get("title", k), "state": v.get("state", "?"),
              "stage": v.get("stage", ""), "pct": v.get("pct", 0),
@@ -256,6 +325,7 @@ def library():
     return {
         "folders": folders, "items": items, "jobs": jobs,
         "total_seconds": tot_s, "total_chunks": tot_c, "suspect": susp,
+        "lint_bad": lint_bad, "lint_papers": lint_seen,
         "ready": ready, "documents": len(papers), "files": len(items) - len(papers),
         "m4b": (OUT / M4B_NAME).exists(), "host": socket.gethostname(),
         "source_url": SOURCE_URL,
@@ -349,6 +419,110 @@ def item_render(pid: str):
         raise HTTPException(409, "already rendering")
     enqueue(pid, it["title"])
     return {"id": pid, "queued": True}
+
+
+# ---------------- reader: alignment + margin notes ----------------
+def _paper_or_404(pid: str) -> dict:
+    it = ws.get_item(pid)
+    if not it or it["kind"] != "paper":
+        raise HTTPException(404, "no such document")
+    return it
+
+
+def _alignment(pid: str) -> dict:
+    """cache/<pid>/align.json, rebuilt on demand when missing or stale.
+
+    Stale means: the text changed (sha1), align.py's format moved on (version),
+    or audio has since completed (timings were null). Building takes seconds
+    (no TTS), so doing it synchronously here beats a cache-state machine. The
+    file lives in the chunk cache, so extract.py's retire_stale_cache() sweeps
+    it aside on a text change -- the sha1 check is belt and braces."""
+    import align as alignmod                    # lazy: pulls pymupdf + synth + build
+    txt = TEXT / f"{pid}.txt"
+    if not txt.exists():
+        raise HTTPException(409, "no extracted text yet - render the document first")
+    dest = CACHE / pid / "align.json"
+    al = None
+    if dest.exists():
+        try:
+            al = json.loads(dest.read_text())
+        except (json.JSONDecodeError, OSError):
+            al = None
+    sha = hashlib.sha1(txt.read_bytes()).hexdigest()
+    stale = (al is None
+             or al.get("version") != alignmod.VERSION
+             or al.get("text_sha1") != sha
+             or (not al.get("audio_complete")
+                 and any((CACHE / pid).glob("*.wav"))))
+    if stale:
+        al = alignmod.build_alignment(pid)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(json.dumps(al))
+    return al
+
+
+@app.get("/api/papers/{pid}/alignment")
+def paper_alignment(pid: str):
+    _paper_or_404(pid)
+    if not (PDFS / f"{pid}.pdf").exists():
+        raise HTTPException(409, "no PDF yet - the reader needs the original pages")
+    return _alignment(pid)
+
+
+def _chunk_quote(pid: str, chunk_idx: int) -> str:
+    """The first ws.QUOTE_LEN chars of a chunk's text -- the note's re-anchoring
+    lifeline. Computed server-side so the client can never quote one passage
+    while anchoring another."""
+    import synth                              # lazy: keeps numpy out of the hot path
+    txt = TEXT / f"{pid}.txt"
+    if not txt.exists():
+        raise HTTPException(409, "no extracted text yet")
+    spans = synth.chunk_spans(txt.read_text())
+    if not 0 <= chunk_idx < len(spans):
+        raise HTTPException(400, f"chunk_idx out of range (0..{len(spans)-1})")
+    c, s, e = spans[chunk_idx]
+    return c[:ws.QUOTE_LEN]
+
+
+@app.get("/api/papers/{pid}/notes")
+def paper_notes(pid: str):
+    _paper_or_404(pid)
+    return {"notes": ws.list_notes(pid)}
+
+
+@app.post("/api/papers/{pid}/notes")
+async def note_create(pid: str, request: Request):
+    _paper_or_404(pid)
+    b = await _body(request)
+    idx = _int(b.get("chunk_idx"))
+    if idx is None or idx < 0:
+        raise HTTPException(400, "chunk_idx required")
+    try:
+        return ws.add_note(pid, idx, b.get("body", ""),
+                           _chunk_quote(pid, idx), _int(b.get("char_off"), 0))
+    except KeyError as e:
+        raise HTTPException(404, str(e)) from e
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@app.patch("/api/notes/{nid}")
+async def note_update(nid: int, request: Request):
+    b = await _body(request)
+    try:
+        return ws.update_note(nid, b.get("body", ""))
+    except KeyError as e:
+        raise HTTPException(404, str(e)) from e
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@app.delete("/api/notes/{nid}")
+def note_delete(nid: int):
+    try:
+        return ws.delete_note(nid)
+    except KeyError as e:
+        raise HTTPException(404, str(e)) from e
 
 
 # ---------------- upload ----------------
@@ -474,6 +648,8 @@ async def upload(request: Request):
     finally:
         for stale in STAGE.glob("*.part"):
             stale.unlink(missing_ok=True)
+    if queued:      # titles appear within seconds, long before each paper's turn to render
+        threading.Thread(target=detect_titles, args=([q["id"] for q in queued],), daemon=True).start()
     return {"queued": queued, "attachments": attached, "skipped": skipped,
             "folders_created": made_folders}
 
@@ -538,17 +714,32 @@ def _ranged(path: pathlib.Path, request: Request, ctype: str, disposition: str |
                                       "Content-Length": str(e - s + 1)})
 
 
+def _inline_as(filename: str) -> str:
+    """Content-Disposition that keeps the PDF viewer and <audio> working (`inline`)
+    while a save or a download link gets the paper's title as its file name.
+    RFC 6266: an ASCII fallback for old clients, then the exact UTF-8 name."""
+    plain = unicodedata.normalize("NFKD", filename).encode("ascii", "ignore").decode()
+    plain = re.sub(r"[^\w .\-()\[\],]+", "_", plain).strip() or "download"
+    return f"inline; filename=\"{plain}\"; filename*=UTF-8''{quote(filename, safe='')}"
+
+
 @app.get("/audio/{name}")
 def audio(name: str, request: Request):
     path = _resolve(OUT, name)
     ctype = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
-    return _ranged(path, request, ctype)
+    it = ws.get_item(path.stem)
+    dl = ws.filename_for(it["title"], path.suffix) if it else path.name
+    return _ranged(path, request, ctype, disposition=_inline_as(dl))
 
 
 @app.get("/pdf/{name}")
 def pdf(name: str, request: Request):
     path = _resolve(PDFS, name)
-    return _ranged(path, request, "application/pdf",
+    it = ws.get_item(path.stem)
+    dl = it["name"] if it else path.name
+    if not dl.lower().endswith(".pdf"):
+        dl += ".pdf"
+    return _ranged(path, request, "application/pdf", disposition=_inline_as(dl),
                    extra={"X-Content-Type-Options": "nosniff"})
 
 

@@ -13,11 +13,12 @@ import json
 import pathlib
 import re
 import sys
+import time
 
 import pymupdf
 
 ROOT = pathlib.Path(__file__).resolve().parent
-PDFS, TEXT = ROOT/"pdfs", ROOT/"text"
+PDFS, TEXT, CACHE = ROOT/"pdfs", ROOT/"text", ROOT/"cache"
 
 # ---------- section boundaries ----------
 REF_HEAD = re.compile(r"^\s*(references|bibliography|works\s+cited|literature\s+cited)\s*:?\s*$", re.I)
@@ -191,6 +192,44 @@ def select_ids(papers, only):
     exact = {p["id"] for p in papers if p["id"] == only}
     return exact or {p["id"] for p in papers if only in p["id"]}
 
+PLACEHOLDER = {"", "uploaded", "unknown", "none", "null"}
+
+def spoken_header(p):
+    """The sentence read before the paper: its title, then authors and venue when known.
+
+    An upload carries the placeholder "uploaded" for authors and venue, and
+    "By uploaded. Published in uploaded." read aloud helps nobody -- so an
+    unknown fact is simply not spoken. A fully described manifest entry gets
+    exactly the sentence it always did, so its cached audio stays valid."""
+    def known(k):
+        v = str(p.get(k) or "").strip()
+        return "" if v.lower() in PLACEHOLDER else v
+    def sentence(s):
+        return s if s.endswith((".", "?", "!")) else s + "."
+    said = [sentence(str(p["title"]).strip())]
+    if known("authors"): said.append(sentence(f"By {known('authors')}"))
+    year, venue = known("year"), known("venue")
+    if year or venue:
+        said.append(sentence("Published" + (f" {year}" if year else "") + (f" in {venue}" if venue else "")))
+    return " ".join(said) + "\n\n"
+
+def retire_stale_cache(pid):
+    """Move cache/<id>/ aside once the text it was narrated from has changed.
+
+    Chunks are cached by POSITION (cache/<id>/00007.wav), not by content. A new
+    title in the spoken header shifts every chunk boundary after it, yet
+    synth.py would reuse the old WAVs and build.py would concatenate them --
+    silently mixing two versions of the paper. Moved, not deleted: re-narrating
+    costs CPU, but nothing rendered is ever destroyed."""
+    cd = CACHE/pid
+    if not cd.is_dir() or not any(cd.glob("*.wav")): return None
+    stamp, n = time.strftime("%Y%m%d-%H%M%S"), 1
+    dest = CACHE/f"{pid}.stale-{stamp}"
+    while dest.exists():
+        n += 1; dest = CACHE/f"{pid}.stale-{stamp}-{n}"
+    cd.rename(dest)
+    return dest
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only"); ap.add_argument("--report", action="store_true")
@@ -205,8 +244,12 @@ def main():
         if not src.exists(): rows.append((p["id"], None)); continue
         st = {}
         body = to_speech(extract(src, st), st)
-        header = (f"{p['title']}. By {p['authors']}. Published {p['year']} in {p['venue']}.\n\n")
-        (TEXT/f"{p['id']}.txt").write_text(header + body)
+        dest, text = TEXT/f"{p['id']}.txt", spoken_header(p) + body
+        if dest.exists() and dest.read_text() != text:
+            moved = retire_stale_cache(p["id"])
+            if moved: print(f"  ! {p['id']}: text changed, so its cached audio no longer matches it"
+                            f" -- moved to cache/{moved.name}; it will be narrated afresh")
+        dest.write_text(text)
         st["final_chars"] = len(body)
         st["words"] = len(body.split())
         st["est_minutes"] = round(st["words"] / 150, 1)

@@ -6,153 +6,257 @@
 <title>Paper Audiobook</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
-  --paper:#F6F8F5; --raise:#FFFFFF; --ink:#141A17; --ink-2:#3D4842; --mute:#6C7973;
-  --rule:#DCE2DC; --rule-2:#EBEFEA;
-  --accent:#146B5C; --accent-soft:#E2EFEA; --accent-ink:#0E5245;
-  --mark:#9A6A18; --mark-soft:#F3E9D4;
-  --bad:#9B2C2C; --bad-soft:#F6E4E4;
-  --shadow:0 1px 2px rgba(20,26,23,.05);
+  --paper:#F4F6F2; --raise:#FFFFFF; --ink:#151B17; --ink-2:#3C4741; --mute:#69766F;
+  --rule:#DEE4DD; --rule-2:#EBEFEA;
+  --accent:#0F6B5A; --accent-soft:#E2EFEA; --accent-ink:#0C5245;
+  --mark:#97690F; --mark-soft:#F4EAD4;
+  --bad:#A32E2E; --bad-soft:#F7E6E6;
+  --r-lg:12px; --r-md:8px; --r-sm:6px;
+  --sh-1:0 1px 2px rgba(20,26,23,.05),0 2px 8px rgba(20,26,23,.04);
+  --sh-1h:0 2px 4px rgba(20,26,23,.06),0 6px 18px rgba(20,26,23,.07);
+  --sh-2:0 12px 40px rgba(20,26,23,.18);
+  --ring:0 0 0 3px rgba(15,107,90,.22);
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --paper:#101512; --raise:#171D1A; --ink:#E7EDE8; --ink-2:#B6C1BA; --mute:#818E87;
-  --rule:#28312C; --rule-2:#1E2622;
-  --accent:#4FB49B; --accent-soft:#16302A; --accent-ink:#8FD9C6;
-  --mark:#D9A650; --mark-soft:#2D2517;
-  --bad:#E88A8A; --bad-soft:#33201F;
-  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --paper:#0F1412; --raise:#171D1A; --ink:#E6ECE7; --ink-2:#B4BFB8; --mute:#7F8C85;
+  --rule:#29332D; --rule-2:#1F2723;
+  --accent:#4FB49B; --accent-soft:#17312A; --accent-ink:#8FD9C6;
+  --mark:#D9A650; --mark-soft:#2E2517;
+  --bad:#E88A8A; --bad-soft:#36211F;
+  --sh-1:0 1px 2px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.3);
+  --sh-1h:0 2px 4px rgba(0,0,0,.45),0 6px 18px rgba(0,0,0,.35);
+  --sh-2:0 12px 40px rgba(0,0,0,.55);
+  --ring:0 0 0 3px rgba(79,180,155,.28);
 }}
 :root[data-theme="dark"]{
-  --paper:#101512; --raise:#171D1A; --ink:#E7EDE8; --ink-2:#B6C1BA; --mute:#818E87;
-  --rule:#28312C; --rule-2:#1E2622;
-  --accent:#4FB49B; --accent-soft:#16302A; --accent-ink:#8FD9C6;
-  --mark:#D9A650; --mark-soft:#2D2517;
-  --bad:#E88A8A; --bad-soft:#33201F;
-  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --paper:#0F1412; --raise:#171D1A; --ink:#E6ECE7; --ink-2:#B4BFB8; --mute:#7F8C85;
+  --rule:#29332D; --rule-2:#1F2723;
+  --accent:#4FB49B; --accent-soft:#17312A; --accent-ink:#8FD9C6;
+  --mark:#D9A650; --mark-soft:#2E2517;
+  --bad:#E88A8A; --bad-soft:#36211F;
+  --sh-1:0 1px 2px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.3);
+  --sh-1h:0 2px 4px rgba(0,0,0,.45),0 6px 18px rgba(0,0,0,.35);
+  --sh-2:0 12px 40px rgba(0,0,0,.55);
+  --ring:0 0 0 3px rgba(79,180,155,.28);
 }
 *{box-sizing:border-box}
+html{scrollbar-gutter:stable}
 body{margin:0;background:var(--paper);color:var(--ink);
   font-family:"Source Serif 4","Iowan Old Style",Georgia,serif;font-size:16px;line-height:1.6;
   -webkit-font-smoothing:antialiased}
 .wrap{max-width:1080px;margin:0 auto;padding:0 24px 80px}
 .mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
 
-header{padding:44px 0 22px;border-bottom:2px solid var(--ink);display:flex;
+header{padding:42px 0 24px;border-bottom:1px solid var(--rule);display:flex;
   align-items:flex-end;gap:20px;flex-wrap:wrap}
 h1{font-family:"Zilla Slab",Rockwell,Georgia,serif;font-weight:700;
-  font-size:clamp(2rem,5vw,2.9rem);line-height:1;letter-spacing:-.015em;margin:0}
-.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.16em;
+  font-size:clamp(2.1rem,5vw,3rem);line-height:1;letter-spacing:-.015em;margin:0}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.18em;
   text-transform:uppercase;color:var(--accent);margin:0 0 12px}
-.hstat{margin-left:auto;text-align:right;font-family:"IBM Plex Mono",monospace;
+.hside{margin-left:auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.hstat{text-align:right;font-family:"IBM Plex Mono",monospace;
   font-size:11px;color:var(--mute);line-height:1.7;font-variant-numeric:tabular-nums}
 .hstat b{color:var(--ink);font-weight:500;font-size:15px}
 
-h2{font-family:"Zilla Slab",Georgia,serif;font-size:.95rem;letter-spacing:.03em;
+h2{font-family:"Zilla Slab",Georgia,serif;font-weight:600;font-size:.95rem;letter-spacing:.04em;
   text-transform:uppercase;margin:0 0 4px}
-section{margin-top:36px}
+section{margin-top:38px}
 .sub{color:var(--mute);font-size:.92rem;margin:0 0 16px;max-width:70ch}
 
-/* upload */
-#drop{border:1.5px dashed var(--rule);background:var(--raise);border-radius:3px;
-  padding:22px;text-align:center;transition:border-color .15s,background .15s}
-#drop.hot{border-color:var(--accent);background:var(--accent-soft)}
-#drop p{margin:0;color:var(--ink-2)}
-#drop .hint{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--mute);margin-top:7px}
-#file,#dir{display:none}
-.btn{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;
-  padding:6px 13px;border-radius:2px;border:1px solid var(--accent);background:transparent;
-  color:var(--accent);cursor:pointer;text-decoration:none;display:inline-block}
+/* buttons */
+.btn{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.05em;
+  padding:7px 14px;border-radius:var(--r-sm);border:1px solid var(--accent);background:transparent;
+  color:var(--accent);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;
+  gap:6px;line-height:1.4;transition:background .15s,color .15s,border-color .15s,box-shadow .15s}
 .btn:hover{background:var(--accent);color:var(--paper)}
-.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .btn.solid{background:var(--accent);color:var(--paper)}
+.btn.solid:hover{box-shadow:var(--ring)}
 .btn.quiet{border-color:var(--rule);color:var(--mute)}
-.btn.quiet:hover{background:var(--rule-2);color:var(--ink)}
-.btn.tiny{font-size:10px;padding:3px 8px}
-.upbtns{display:flex;gap:9px;justify-content:center;margin-top:13px;flex-wrap:wrap}
+.btn.quiet:hover{background:var(--rule-2);color:var(--ink);border-color:var(--mute)}
+.btn.tiny{font-size:10px;padding:4px 10px}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn.danger:hover{background:var(--bad);color:var(--paper)}
 
-/* queue */
-#queue{margin-top:14px}
-.job{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--raise);
-  border:1px solid var(--rule);border-left:3px solid var(--mark);margin-bottom:8px}
-.job .nm{flex:1;font-size:.93rem}
-.job .st{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--mark)}
-.bar{height:3px;background:var(--rule-2);border-radius:2px;overflow:hidden;margin-top:6px}
-.bar i{display:block;height:100%;background:var(--mark);transition:width .4s}
+/* form fields */
+input[type="search"],input[type="text"],select{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;padding:7px 11px;
+  background:var(--raise);color:var(--ink);border:1px solid var(--rule);
+  border-radius:var(--r-sm);transition:border-color .15s,box-shadow .15s}
+input[type="search"]:focus,input[type="text"]:focus,select:focus{
+  outline:none;border-color:var(--accent);box-shadow:var(--ring)}
+
+/* upload */
+#drop{border:1.5px dashed var(--rule);background:var(--raise);border-radius:var(--r-lg);
+  box-shadow:var(--sh-1);padding:34px 22px;text-align:center;
+  transition:border-color .18s,background .18s,box-shadow .18s}
+#drop.hot{border-color:var(--accent);border-style:solid;background:var(--accent-soft);box-shadow:var(--ring)}
+#drop p{margin:0;color:var(--ink-2)}
+#drop .hint{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--mute);margin-top:8px}
+#file,#dir{display:none}
+.upbtns{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
 
 /* workspace chrome */
 .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 #crumbs{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--mute);
   display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-#crumbs a{color:var(--accent);text-decoration:none;cursor:pointer;border-bottom:1px solid transparent}
-#crumbs a:hover{border-bottom-color:var(--accent)}
+#crumbs .crumb{background:none;border:0;padding:0;font:inherit;color:var(--accent);
+  cursor:pointer;border-bottom:1px solid transparent;border-radius:0}
+#crumbs .crumb:hover{border-bottom-color:var(--accent)}
+#crumbs .sep{color:var(--rule)}
 #crumbs .here{color:var(--ink)}
 .spacer{flex:1}
 .cols{display:grid;grid-template-columns:230px 1fr;gap:26px;align-items:start}
 @media(max-width:780px){.cols{grid-template-columns:1fr}}
-aside{position:sticky;top:14px;border:1px solid var(--rule);background:var(--raise);padding:10px}
-.tnode{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:2px;cursor:pointer;
-  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-2);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+aside{position:sticky;top:14px;border:1px solid var(--rule);background:var(--raise);
+  border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:8px}
+.tnode{display:flex;align-items:center;gap:4px;padding:3px 4px;border-radius:var(--r-sm);
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-2)}
 .tnode:hover{background:var(--rule-2)}
 .tnode.on{background:var(--accent-soft);color:var(--accent-ink)}
 .tnode.over{outline:1.5px dashed var(--accent);outline-offset:-1px}
-.tnode .n{margin-left:auto;color:var(--mute);font-size:10px}
+.tlbl{flex:1;min-width:0;text-align:left;background:none;border:0;padding:3px 2px;margin:0;
+  font:inherit;color:inherit;cursor:pointer;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.tnode .n{color:var(--mute);font-size:10px;padding:0 2px}
+.tnode .fbtn{border:0;background:transparent;color:var(--mute);cursor:pointer;padding:3px 4px;
+  font-size:10px;line-height:1;opacity:0;border-radius:var(--r-sm);transition:opacity .12s}
+.tnode:hover .fbtn,.tnode:focus-within .fbtn{opacity:1}
+.tnode .fbtn:hover{color:var(--accent)}
+.tnode .fbtn:focus-visible{opacity:1}
+/* A phone has no hover, so hover-revealed folder actions were simply invisible there. */
+@media (hover:none){.tnode .fbtn{opacity:1;padding:6px 7px;font-size:12px}}
 
-/* folder tiles */
-#folders{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:14px}
-.ftile{display:flex;align-items:center;gap:8px;background:var(--raise);border:1px solid var(--rule);
-  padding:8px 11px;cursor:pointer;min-width:170px}
-.ftile:hover{border-color:var(--accent)}
-.ftile.over{border-color:var(--accent);background:var(--accent-soft)}
-.ftile .nm{font-family:"IBM Plex Mono",monospace;font-size:12px;flex:1;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ftile .n{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--mute)}
+/* search & sort row */
+.libtools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+#q{flex:1;min-width:180px;font-size:12px;padding:9px 13px;border-radius:var(--r-md)}
+.sortlbl{display:flex;align-items:center;gap:8px;font-family:"IBM Plex Mono",monospace;
+  font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
 
 /* library: a flex column so cards are REORDERED WITH CSS `order`, never moved
    in the DOM. Moving or rebuilding a node that contains a playing <audio>
    stops playback -- the bug this whole structure exists to prevent. */
 #lib{display:flex;flex-direction:column}
-.card{background:var(--raise);border:1px solid var(--rule);padding:16px 18px;margin-bottom:10px}
+.card{background:var(--raise);border:1px solid var(--rule);border-radius:var(--r-lg);
+  box-shadow:var(--sh-1);padding:18px 20px;margin-bottom:12px;
+  transition:box-shadow .2s,border-color .2s,opacity .15s}
+.card:hover{box-shadow:var(--sh-1h)}
 .card[hidden]{display:none!important}
-.card.pending{border-left:3px solid var(--mute)}
-.card.ready{border-left:3px solid var(--accent)}
-.card.busy{border-left:3px solid var(--mark)}
-.card.file{border-left:3px solid var(--rule)}
+.card.pending{border-left:4px solid var(--mute)}
+.card.ready{border-left:4px solid var(--accent)}
+.card.busy{border-left:4px solid var(--mark)}
+.card.failed{border-left:4px solid var(--bad)}
+.card.file{border-left:4px solid var(--rule)}
+.card.playing{border-color:var(--accent);border-left:4px solid var(--accent);
+  box-shadow:var(--ring),var(--sh-1h)}
 .card.drag{opacity:.45}
 .row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .grip{cursor:grab;color:var(--mute);font-size:13px;flex:none;line-height:1;
   align-self:center;user-select:none}
 .grip:active{cursor:grabbing}
-.ttl{font-family:"Zilla Slab",Georgia,serif;font-weight:500;font-size:1.08rem;line-height:1.3;
+.ttl{font-family:"Zilla Slab",Georgia,serif;font-weight:600;font-size:1.12rem;line-height:1.3;
   flex:1;min-width:min(100%,300px);word-break:break-word}
 .meta{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--mute);
-  margin-top:5px;font-variant-numeric:tabular-nums}
-.arte{font-family:"IBM Plex Mono",monospace;font-size:11px;margin-top:6px;color:var(--mute)}
-.arte a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+  margin-top:6px;font-variant-numeric:tabular-nums}
+.arte{font-family:"IBM Plex Mono",monospace;font-size:11px;margin-top:8px;color:var(--mute);
+  display:flex;flex-wrap:wrap;gap:2px 0;align-items:baseline}
+.arte a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;
+  border-radius:0}
 .arte a:hover{border-bottom-color:var(--accent)}
 .arte .sep{color:var(--rule)}
-.pill{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.07em;
-  padding:2px 7px;border-radius:2px;flex:none}
+.pill{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.08em;
+  text-transform:uppercase;padding:3px 10px;border-radius:999px;flex:none;font-weight:500}
 .p-ok{background:var(--accent-soft);color:var(--accent-ink)}
 .p-wait{background:transparent;color:var(--mute);border:1px dashed var(--rule)}
 .p-busy{background:var(--mark-soft);color:var(--mark)}
 .p-need{background:var(--bad-soft);color:var(--bad)}
-audio{width:100%;margin-top:12px;height:36px}
-.acts{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;align-items:center}
-.tools{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap;align-items:center}
-.tools select{font-family:"IBM Plex Mono",monospace;font-size:10.5px;padding:3px 6px;
-  background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:2px;max-width:230px}
+.p-fail{background:var(--bad);color:var(--paper)}
+.err{margin-top:10px;padding:8px 12px;background:var(--bad-soft);border-left:3px solid var(--bad);
+  border-radius:var(--r-sm);font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--bad);
+  cursor:pointer;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;word-break:break-word}
+.err[hidden]{display:none}
+.err.open{-webkit-line-clamp:unset;display:block}
+.bar{height:4px;background:var(--rule-2);border-radius:999px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--mark);border-radius:999px;transition:width .4s}
+audio{width:100%;margin-top:12px;height:38px;border-radius:var(--r-sm)}
+.acts{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.acts .rate{margin-left:auto;max-width:88px}
+.tools{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--rule-2);
+  flex-wrap:wrap;align-items:center}
+.tools select{max-width:230px;font-size:10.5px;padding:5px 8px}
+
 footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--rule);
   font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--mute);line-height:1.8}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--ink);
-  color:var(--paper);padding:10px 18px;border-radius:3px;font-family:"IBM Plex Mono",monospace;
-  font-size:12px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:20;
-  max-width:min(92vw,620px);text-align:center}
-.toast.show{opacity:1}
+footer a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+footer a:hover{border-bottom-color:var(--accent)}
 #empty{color:var(--mute);font-size:.92rem;font-style:italic}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* toast + connectivity banner */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--ink);
+  color:var(--paper);padding:11px 20px;border-radius:var(--r-md);
+  font-family:"IBM Plex Mono",monospace;font-size:12px;opacity:0;pointer-events:none;
+  transition:opacity .25s;z-index:50;max-width:min(92vw,620px);text-align:center;
+  box-shadow:var(--sh-2)}
+.toast.show{opacity:1}
+.netbar{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:45;
+  background:var(--bad-soft);color:var(--bad);border:1px solid var(--bad);
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;padding:8px 18px;
+  border-radius:999px;box-shadow:var(--sh-1)}
+.netbar[hidden]{display:none}
+
+/* modal dialogs (replace prompt()/confirm()) */
+.modal{position:fixed;inset:0;background:rgba(15,20,17,.48);backdrop-filter:blur(3px);
+  display:flex;align-items:center;justify-content:center;z-index:60;padding:20px}
+.modal[hidden]{display:none}
+.mbox{background:var(--raise);border:1px solid var(--rule);border-radius:14px;
+  box-shadow:var(--sh-2);padding:24px;width:min(94vw,460px);animation:pop .16s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.mbox h3{font-family:"Zilla Slab",Georgia,serif;font-weight:600;font-size:1.15rem;
+  margin:0 0 8px;line-height:1.3;word-break:break-word}
+.msub{color:var(--ink-2);font-size:.92rem;margin:0 0 6px}
+.msub[hidden]{display:none}
+#minput{width:100%;margin:10px 0 2px;font-size:13px;padding:10px 12px;border-radius:var(--r-md)}
+#minput[hidden]{display:none}
+.mbtns{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}
+
+/* --- render queue: sidebar, collapsible, scrollable --------------------- */
+.sidecol{position:sticky;top:14px;display:flex;flex-direction:column;gap:12px}
+.sidecol aside{position:static}
+#qpanel{padding:0;overflow:hidden}
+.qhead{display:flex;align-items:center;gap:8px;width:100%;padding:11px 12px;cursor:pointer;
+  background:transparent;border:0;border-bottom:1px solid var(--rule);color:var(--ink);
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.qhead:hover{background:var(--rule-2)}
+.qhead:focus-visible{outline-offset:-2px}
+.qhead .qlabel{flex:1;text-align:left}
+.qhead .chev{color:var(--mark);transition:transform .18s;display:inline-block}
+#qpanel.collapsed .chev{transform:rotate(-90deg)}
+#qpanel.collapsed #queue{display:none}
+#qpanel.collapsed .qhead{border-bottom:0}
+.qcount{background:var(--mark-soft);color:var(--mark);border-radius:999px;padding:1px 8px;
+  font-variant-numeric:tabular-nums}
+#queue{max-height:44vh;overflow-y:auto;padding:8px}
+#queue .job{display:block;padding:8px 10px;margin:0 0 6px;border:0;border-radius:var(--r-sm);
+  border-left:3px solid var(--rule);background:var(--rule-2)}
+#queue .job.run{border-left-color:var(--mark);background:var(--mark-soft)}
+#queue .job.err{border-left-color:var(--bad);background:var(--bad-soft)}
+#queue .job .nm{font-size:.86rem;line-height:1.3;overflow:hidden;text-overflow:ellipsis;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#queue .job .st{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--mute);margin-top:4px}
+#queue .job.run .st{color:var(--mark)}
+#queue .job.err .st{color:var(--bad);font-weight:500}
+#queue .qerr{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--bad);
+  margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;
+  -webkit-box-orient:vertical;word-break:break-word}
+#queue .qretry{margin-top:7px}
+#queue .qmore{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--mute);
+  padding:4px 8px}
+@media(max-width:780px){.sidecol{position:static}#queue{max-height:32vh}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
@@ -162,9 +266,12 @@ footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--rule);
     <p class="eyebrow">homelab &middot; kokoro-82M &middot; cpu</p>
     <h1>Paper Audiobook</h1>
   </div>
-  <div class="hstat">
-    <b id="s-hours">&mdash;</b> rendered<br>
-    <span id="s-papers">&mdash;</span> &middot; <span id="s-chunks">&mdash;</span> chunks
+  <div class="hside">
+    <div class="hstat">
+      <b id="s-hours">&mdash;</b> rendered<br>
+      <span id="s-papers">&mdash;</span> &middot; <span id="s-chunks">&mdash;</span> chunks
+    </div>
+    <button class="btn quiet tiny" id="themebtn" type="button" aria-label="Toggle colour theme"></button>
   </div>
 </header>
 
@@ -181,7 +288,6 @@ footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--rule);
   </div>
   <input type="file" id="file" multiple>
   <input type="file" id="dir" webkitdirectory directory multiple>
-  <div id="queue"></div>
 </section>
 
 <section>
@@ -189,13 +295,33 @@ footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--rule);
     <h2 style="margin:0">Workspace</h2>
     <nav id="crumbs" aria-label="Breadcrumb"></nav>
     <span class="spacer"></span>
-    <button class="btn quiet tiny" id="newfolder">New folder</button>
+    <button class="btn tiny" id="newfolder" type="button" title="Create a folder in the folder on screen">+ New folder</button>
     <a class="btn quiet tiny" id="m4b" href="/m4b" style="display:none">M4B</a>
   </div>
   <div class="cols">
-    <aside id="tree" aria-label="Folders"></aside>
+    <div class="sidecol">
+      <aside id="tree" aria-label="Folders"></aside>
+      <aside id="qpanel" aria-label="Render queue" hidden>
+        <button type="button" id="qtoggle" class="qhead" aria-expanded="true" aria-controls="queue">
+          <span class="chev" aria-hidden="true">&#9662;</span>
+          <span class="qlabel">Render queue</span>
+          <span class="qcount" id="qcount">0</span>
+        </button>
+        <div id="queue"></div>
+      </aside>
+    </div>
     <div>
-      <div id="folders"></div>
+      <div class="libtools">
+        <input type="search" id="q" placeholder="Filter by title or author&hellip;" aria-label="Filter documents">
+        <label class="sortlbl" for="sort">Sort
+          <select id="sort" aria-label="Sort documents">
+            <option value="order">Manual order</option>
+            <option value="title">Title A&ndash;Z</option>
+            <option value="-title">Title Z&ndash;A</option>
+            <option value="-created">Newest first</option>
+          </select>
+        </label>
+      </div>
       <div id="lib"></div>
       <p id="empty" hidden>This folder is empty.</p>
     </div>
@@ -204,7 +330,21 @@ footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--rule);
 
 <footer id="foot"></footer>
 </div>
-<div class="toast" id="toast"></div>
+
+<div class="netbar" id="netbar" role="alert" hidden>Lost contact with the server &mdash; retrying automatically.</div>
+<div class="toast" id="toast" role="status"></div>
+
+<div class="modal" id="modal" hidden>
+  <div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+    <h3 id="mtitle"></h3>
+    <p class="msub" id="mbody" hidden></p>
+    <input type="text" id="minput" hidden>
+    <div class="mbtns">
+      <button class="btn quiet" id="mcancel" type="button">Cancel</button>
+      <button class="btn solid" id="mok" type="button">OK</button>
+    </div>
+  </div>
+</div>
 
 <script>
 "use strict";
@@ -212,8 +352,29 @@ const $=s=>document.querySelector(s);
 const ROOT=0, ALL=-1;
 const cards=new Map();      // item id -> card element. Created once, patched in place, NEVER rebuilt.
 let cur=ROOT, data=null, fast=false, timer=null, busyUploading=false;
+let query='';
+let sortBy=(()=>{try{return localStorage.getItem('pa:sort')||'order';}catch(e){return 'order';}})();
 
 try{ const v=localStorage.getItem('pa:folder'); if(v!==null) cur=parseInt(v,10)||0; }catch(e){}
+
+/* ---------- theme: an explicit choice wins, otherwise the OS decides ----------
+   The CSS handles both: a media query for the default, :root[data-theme] for
+   the override. Setting the attribute as the script's first act avoids a flash
+   of the wrong theme. */
+try{ const t=localStorage.getItem('pa:theme');
+  if(t==='light'||t==='dark') document.documentElement.setAttribute('data-theme',t); }catch(e){}
+function osDark(){ try{ return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches); }catch(e){ return false; } }
+function themeNow(){ return document.documentElement.getAttribute('data-theme')||(osDark()?'dark':'light'); }
+function themePaint(){ const dark=themeNow()==='dark', b=$('#themebtn');
+  b.textContent=dark?'\u2600 light':'\u263E dark';
+  b.setAttribute('aria-label',dark?'Switch to light theme':'Switch to dark theme'); }
+$('#themebtn').addEventListener('click',()=>{
+  const next=themeNow()==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  try{localStorage.setItem('pa:theme',next);}catch(e){}
+  themePaint();
+});
+themePaint();
 
 const pad=n=>String(n).padStart(2,'0');
 function hms(s){if(s==null)return'--';const h=Math.floor(s/3600),m=Math.round(s%3600/60);
@@ -226,6 +387,46 @@ function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');
   clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),4000);}
 const setText=(el,sel,v)=>{const n=el.querySelector(sel);if(n&&n.textContent!==v)n.textContent=v;};
 const setAttr=(el,k,v)=>{if(el.getAttribute(k)!==v)el.setAttribute(k,v);};
+
+/* ---------- modal dialogs: the styled replacement for prompt()/confirm() ---------- */
+let modalResolve=null, modalPrev=null;
+function dlgOpen(o){
+  return new Promise(res=>{
+    modalResolve=res; modalPrev=document.activeElement;
+    $('#mtitle').textContent=o.title;
+    const b=$('#mbody'); b.hidden=!o.body; if(o.body)b.textContent=o.body;
+    const inp=$('#minput'); inp.hidden=(o.value===undefined);
+    if(o.value!==undefined){inp.value=o.value; inp.placeholder=o.placeholder||'';}
+    $('#mok').textContent=o.ok||'OK';
+    $('#mok').className='btn solid'+(o.danger?' danger':'');
+    $('#modal').hidden=false;
+    if(inp.hidden){$('#mok').focus();}else{inp.focus();inp.select();}
+  });
+}
+function dlgClose(v){ if(!modalResolve)return; const r=modalResolve; modalResolve=null;
+  $('#modal').hidden=true;
+  if(modalPrev&&modalPrev.focus)modalPrev.focus();
+  r(v); }
+$('#mok').addEventListener('click',()=>{
+  const inp=$('#minput');
+  if(!inp.hidden){ const v=inp.value.trim(); if(!v){inp.focus();return;} dlgClose(v); }
+  else dlgClose(true);
+});
+$('#mcancel').addEventListener('click',()=>dlgClose(null));
+$('#modal').addEventListener('click',e=>{ if(e.target.id==='modal')dlgClose(null); });
+$('#modal').addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ e.preventDefault(); dlgClose(null); return; }
+  if(e.key==='Enter'&&e.target.id==='minput'){ e.preventDefault(); $('#mok').click(); return; }
+  if(e.key==='Tab'){                                    // tiny focus trap
+    const f=[...$('#modal').querySelectorAll('input,button')].filter(x=>!x.hidden);
+    if(!f.length)return;
+    const i=f.indexOf(document.activeElement);
+    if(e.shiftKey&&i<=0){ e.preventDefault(); f[f.length-1].focus(); }
+    else if(!e.shiftKey&&i===f.length-1){ e.preventDefault(); f[0].focus(); }
+  }
+});
+const dlgPrompt=(title,value,ok)=>dlgOpen({title,value,ok});
+const dlgConfirm=(title,body,ok,danger)=>dlgOpen({title,body,ok,danger});
 
 /* ---------- folder helpers (pure, computed from the payload) ---------- */
 function fmap(){const m=new Map();for(const f of (data?data.folders:[]))m.set(f.id,f);return m;}
@@ -264,6 +465,16 @@ function attachAudio(slot,it){
   a.addEventListener('ended',()=>{try{localStorage.removeItem(key);}catch(e){}});
   a.addEventListener('error',()=>toast('Playback error on '+it.title));
 
+  /* One player at a time: starting this one pauses every other card's audio,
+     and the card carries a visible "now playing" marker while it runs. */
+  a.addEventListener('play',()=>{
+    document.querySelectorAll('#lib audio').forEach(o=>{ if(o!==a) o.pause(); });
+    const c=slot.closest('.card'); if(c) c.classList.add('playing');
+  });
+  a.addEventListener('pause',()=>{
+    const c=slot.closest('.card'); if(c) c.classList.remove('playing');
+  });
+
   const acts=document.createElement('div');
   acts.className='acts';
   const dl=document.createElement('a');
@@ -271,7 +482,24 @@ function attachAudio(slot,it){
   const sz=document.createElement('span'); sz.className='meta'; sz.style.margin='0';
   const rs=document.createElement('span'); rs.className='meta resume';
   rs.style.margin='0'; rs.style.color='var(--mark)';
-  acts.append(dl,sz,rs);
+
+  /* Playback speed, remembered per document with the last choice as the
+     default for the next one (pa:rate:<id> falling back to pa:rate). */
+  const rate=document.createElement('select');
+  rate.className='rate'; rate.title='Playback speed';
+  rate.setAttribute('aria-label','Playback speed');
+  ['0.75','1','1.25','1.5','1.75','2'].forEach(v=>{
+    const o=document.createElement('option'); o.value=v; o.textContent=v+'\u00d7'; rate.appendChild(o); });
+  let r0='1'; try{ r0=localStorage.getItem('pa:rate:'+it.id)||localStorage.getItem('pa:rate')||'1'; }catch(e){}
+  if(![...rate.options].some(o=>o.value===r0)) r0='1';
+  rate.value=r0; a.playbackRate=parseFloat(r0);
+  rate.addEventListener('change',()=>{
+    a.playbackRate=parseFloat(rate.value);
+    try{ localStorage.setItem('pa:rate:'+it.id,rate.value);
+         localStorage.setItem('pa:rate',rate.value); }catch(e){}
+  });
+
+  acts.append(dl,sz,rs,rate);
   slot.append(a,acts);
   if(saved>5) rs.textContent='resume '+mmss(saved);
   return a;
@@ -285,15 +513,16 @@ function makeCard(it){
   /* innerHTML on a FRESH, DETACHED div, once, before any <audio> exists.
      #lib itself is never assigned innerHTML -- see the CSS note above. */
   el.innerHTML=
-    '<div class="row"><span class="grip" draggable="true" title="Drag onto a folder">&#10495;</span>'+
+    '<div class="row"><span class="grip" draggable="true" title="Drag onto a folder" role="button" aria-label="Drag to move">&#10495;</span>'+
     '<span class="ttl"></span><span class="pill"></span></div>'+
     '<div class="meta"></div>'+
     '<div class="arte"><a class="a-pdf" target="_blank" rel="noopener"></a>'+
     '<span class="sep"></span><a class="a-wav"></a><span class="a-txt-sep"></span>'+
     '<a class="a-txt" target="_blank" rel="noopener"></a><span class="a-none"></span></div>'+
     '<div class="bar" hidden><i style="width:0%"></i></div>'+
+    '<div class="err" hidden title="Click to expand"></div>'+
     '<div class="slot"></div>'+
-    '<div class="tools"><select class="mv" title="Move to folder"></select>'+
+    '<div class="tools"><select class="mv" title="Move to folder" aria-label="Move to folder"></select>'+
     '<button class="btn quiet tiny b-render">Render</button>'+
     '<button class="btn quiet tiny b-rename">Rename</button>'+
     '<button class="btn quiet tiny b-arch">Archive</button></div>';
@@ -303,21 +532,26 @@ function makeCard(it){
     e.dataTransfer.effectAllowed='move'; el.classList.add('drag');
   });
   el.querySelector('.grip').addEventListener('dragend',()=>el.classList.remove('drag'));
+  el.querySelector('.err').addEventListener('click',ev=>ev.currentTarget.classList.toggle('open'));
   el.querySelector('.mv').addEventListener('change',ev=>{
     move(it.id, parseInt(ev.target.value,10));
   });
   el.querySelector('.b-rename').addEventListener('click',()=>{
     const cell=el.querySelector('.ttl');
-    const v=prompt('Name for this document', cell.textContent); if(v===null)return;
-    api('PATCH','/api/items/'+encodeURIComponent(it.id),{title:v})
-      .then(()=>{toast('Renamed');load();});
+    dlgPrompt('Name for this document',cell.textContent,'Rename').then(v=>{
+      if(v===null)return;
+      api('PATCH','/api/items/'+encodeURIComponent(it.id),{title:v})
+        .then(()=>{toast('Renamed');load();});
+    });
   });
   el.querySelector('.b-arch').addEventListener('click',()=>{
-    if(!confirm('Archive "'+el.querySelector('.ttl').textContent+'"?\n\n'+
-       'It disappears from the workspace. Nothing is deleted from disk — the '+
-       'PDF, the chunk cache and the WAV all stay.'))return;
-    api('DELETE','/api/items/'+encodeURIComponent(it.id))
-      .then(()=>{toast('Archived');load();});
+    dlgConfirm('Archive "'+el.querySelector('.ttl').textContent+'"?',
+      'It disappears from the workspace. Nothing is deleted from disk \u2014 the '+
+      'PDF, the chunk cache and the WAV all stay.','Archive',true).then(ok=>{
+      if(!ok)return;
+      api('DELETE','/api/items/'+encodeURIComponent(it.id))
+        .then(()=>{toast('Archived');load();});
+    });
   });
   el.querySelector('.b-render').addEventListener('click',()=>{
     api('POST','/api/items/'+encodeURIComponent(it.id)+'/render')
@@ -333,7 +567,7 @@ function fillMove(sel,it){
   sel._sig=sig;
   const opts=[{id:ROOT,label:'⌂ workspace'}];
   const walk=(pid,depth)=>{for(const f of fchildren(pid)){
-    opts.push({id:f.id,label:' '.repeat(depth*2)+'└ '+f.name}); walk(f.id,depth+1);}};
+    opts.push({id:f.id,label:' '.repeat(depth*2)+'└ '+f.name}); walk(f.id,depth+1);}};
   walk(ROOT,1);
   sel.textContent='';
   for(const o of opts){
@@ -347,20 +581,35 @@ function fillMove(sel,it){
 function updateCard(el,it){
   const paper=it.kind==='paper';
   const busy=it.state==='rendering'||it.state==='queued';
-  const cls='card '+(paper?(it.audio.present?'ready':(busy?'busy':'pending')):'file');
-  if(el.className.replace(' drag','')!==cls) el.className=cls+(el.classList.contains('drag')?' drag':'');
+  const job=(data.jobs||[]).find(j=>j.id===it.id);
+  const failed=paper&&job&&job.state==='error';
+  const cls='card '+(paper?(failed?'failed':it.audio.present?'ready':(busy?'busy':'pending')):'file');
+  /* preserve the transient classes the audio events and drag handlers own */
+  const keep=(el.classList.contains('drag')?' drag':'')+(el.classList.contains('playing')?' playing':'');
+  if(el.className!==cls+keep) el.className=cls+keep;
 
   setText(el,'.ttl',it.title);
   const pill=el.querySelector('.pill');
-  const pcls=it.audio&&it.audio.present?'pill p-ok':busy?'pill p-busy'
+  const pcls=failed?'pill p-fail':it.audio&&it.audio.present?'pill p-ok':busy?'pill p-busy'
       :it.state==='needs PDF'?'pill p-need':'pill p-wait';
-  if(pill.textContent!==it.state) pill.textContent=it.state;
+  const ptxt=failed?'render failed':it.state;
+  if(pill.textContent!==ptxt) pill.textContent=ptxt;
   if(pill.className!==pcls) pill.className=pcls;
+
+  /* A failed render used to hide its reason in a title= tooltip. Put it on
+     the card instead: one glance tells you what broke, click expands it. */
+  const err=el.querySelector('.err');
+  if(failed&&job.error){
+    const msg='Render failed \u2014 '+job.error;
+    if(err.textContent!==msg) err.textContent=msg;
+    if(err.hidden) err.hidden=false;
+  }else if(!err.hidden){ err.hidden=true; err.classList.remove('open'); }
 
   const where=cur===ALL?fullname(it.folder_id):null;
   const bits=paper
     ? [it.authors,it.venue,it.audio.present?hms(it.audio.seconds):null,
-       it.chunks?it.chunks+' chunks':null,it.suspect?it.suspect+' suspect':null,where]
+       it.chunks?it.chunks+' chunks':null,it.suspect?it.suspect+' suspect':null,
+       (it.lint&&it.lint.bad)?'\u26a0 '+it.lint.bad+' flagged':null,where]
     : ['attachment', it.file.present?mb(it.file.bytes):'missing', where];
   setText(el,'.meta',bits.filter(Boolean).join(' · '));
 
@@ -386,7 +635,7 @@ function updateCard(el,it){
     else none.textContent=it.name+'  (missing)';
   }
 
-  const bar=el.querySelector('.bar'), job=(data.jobs||[]).find(j=>j.id===it.id);
+  const bar=el.querySelector('.bar');
   if(busy&&job){bar.hidden=false;bar.firstElementChild.style.width=(job.pct||0)+'%';}
   else if(!bar.hidden) bar.hidden=true;
 
@@ -399,7 +648,7 @@ function updateCard(el,it){
   const rb=el.querySelector('.b-render');
   const canRender=paper&&it.pdf.present&&!busy;
   if(rb.hidden===canRender) rb.hidden=!canRender;
-  if(canRender){const t=it.audio.present?'Re-render':'Render'; if(rb.textContent!==t)rb.textContent=t;}
+  if(canRender){const t=failed?'Retry':it.audio.present?'Re-render':'Render'; if(rb.textContent!==t)rb.textContent=t;}
   fillMove(el.querySelector('.mv'),it);
 }
 
@@ -408,55 +657,53 @@ function updateCard(el,it){
 function paintTree(){
   const box=$('#tree');
   box.textContent='';
-  const mk=(id,name,depth,extra)=>{
+  const mk=(id,name,depth,extra,real)=>{
     const n=document.createElement('div');
     n.className='tnode'+(cur===id?' on':'');
     n.dataset.fid=String(id);
     n.style.paddingLeft=(6+depth*12)+'px';
-    const t=document.createElement('span'); t.textContent=name;
+    /* a real <button> for the label: focusable and Enter/Space-operable */
+    const t=document.createElement('button'); t.type='button'; t.className='tlbl'; t.textContent=name;
     const c=document.createElement('span'); c.className='n'; c.textContent=extra;
     n.append(t,c);
+    if(real){
+      // The main-view folder tiles used to carry these; the tree owns them now.
+      n.draggable=true;
+      const sub=document.createElement('button'); sub.className='fbtn'; sub.textContent='+';
+      sub.title='New folder inside'; sub.dataset.act='sub'; sub.setAttribute('aria-label','New folder inside '+name);
+      const ren=document.createElement('button'); ren.className='fbtn'; ren.textContent='\u270E';
+      ren.title='Rename folder'; ren.dataset.act='rename'; ren.setAttribute('aria-label','Rename folder '+name);
+      const del=document.createElement('button'); del.className='fbtn'; del.textContent='\u2715';
+      del.title='Delete folder (contents move up)'; del.dataset.act='del';
+      del.setAttribute('aria-label','Delete folder '+name);
+      n.append(sub,ren,del);
+    }
     box.appendChild(n);
     return n;
   };
   mk(ALL,'≡ all documents',0,String((data.items||[]).length));
   mk(ROOT,'⌂ workspace',0,String(counts(ROOT)));
   const walk=(pid,depth)=>{for(const f of fchildren(pid)){
-    mk(f.id,'└ '+f.name,depth,String(counts(f.id))); walk(f.id,depth+1);}};
+    mk(f.id,'└ '+f.name,depth,String(counts(f.id)),true); walk(f.id,depth+1);}};
   walk(ROOT,1);
 }
 function paintCrumbs(){
   const box=$('#crumbs'); box.textContent='';
   const add=(label,id,here)=>{
-    const a=document.createElement(here?'span':'a');
-    a.textContent=label; if(here)a.className='here'; else a.dataset.fid=String(id);
+    const a=document.createElement(here?'span':'button');
+    a.textContent=label;
+    if(here)a.className='here'; else{a.type='button';a.className='crumb';a.dataset.fid=String(id);}
     box.appendChild(a);
   };
   if(cur===ALL){add('all documents',ALL,true);return;}
   const path=fpath(cur);
   add('workspace',ROOT,path.length===0);
   path.forEach((f,i)=>{
-    const s=document.createElement('span'); s.textContent='/'; box.appendChild(s);
+    const s=document.createElement('span'); s.className='sep'; s.textContent='/'; box.appendChild(s);
     add(f.name,f.id,i===path.length-1);
   });
 }
 
-function paintFolders(){
-  const box=$('#folders'); box.textContent='';
-  if(cur===ALL) return;
-  for(const f of fchildren(cur)){
-    const t=document.createElement('div');
-    t.className='ftile'; t.dataset.fid=String(f.id); t.draggable=true;
-    const nm=document.createElement('span'); nm.className='nm'; nm.textContent='▸ '+f.name;
-    const n=document.createElement('span'); n.className='n'; n.textContent=counts(f.id);
-    const ren=document.createElement('button'); ren.className='btn quiet tiny'; ren.textContent='✎';
-    ren.title='Rename'; ren.dataset.act='rename';
-    const del=document.createElement('button'); del.className='btn quiet tiny'; del.textContent='✕';
-    del.title='Delete folder (contents move up)'; del.dataset.act='del';
-    t.append(nm,n,ren,del);
-    box.appendChild(t);
-  }
-}
 
 /* ---------- footer ----------
    Holds the AGPL-3.0 source offer. Section 13 of the AGPL says that if users
@@ -487,10 +734,17 @@ function paintFoot(d){
 /* ---------- the one function that touches #lib ---------- */
 function paintItems(){
   const lib=$('#lib'), seen=new Set();
-  const list=(data.items||[]).slice().sort((a,b)=>
-    (a.kind==='paper'?0:1)-(b.kind==='paper'?0:1) ||
-    (a.order||0)-(b.order||0) ||
-    a.title.localeCompare(b.title));
+  const q=query.trim().toLowerCase();
+  /* client-side filter + sort. Both obey the same rule as folder switches:
+     hide with el.hidden, reorder with style.order, never move a DOM node. */
+  const SORTS={
+    'order':(a,b)=>(a.order||0)-(b.order||0)||a.title.localeCompare(b.title),
+    'title':(a,b)=>a.title.localeCompare(b.title),
+    '-title':(a,b)=>b.title.localeCompare(a.title),
+    '-created':(a,b)=>(b.created||0)-(a.created||0)||a.title.localeCompare(b.title),
+  };
+  const cmp=(a,b)=>((a.kind==='paper'?0:1)-(b.kind==='paper'?0:1))||(SORTS[sortBy]||SORTS.order)(a,b);
+  const list=(data.items||[]).slice().sort(cmp);
   let shown=0;
   list.forEach((it,i)=>{
     seen.add(it.id);
@@ -498,7 +752,8 @@ function paintItems(){
     if(!el){ el=makeCard(it); cards.set(it.id,el); lib.appendChild(el); }  // appended ONCE
     updateCard(el,it);
     el.style.order=String(i+1);           // reorder in CSS; the DOM node never moves
-    const vis=(cur===ALL)||(it.folder_id===cur);
+    const hit=!q||(it.title+' '+(it.authors||'')+' '+(it.name||'')+' '+(it.orig_name||'')).toLowerCase().includes(q);
+    const vis=((cur===ALL)||(it.folder_id===cur))&&hit;
     if(el.hidden===vis) el.hidden=!vis;    // hide, don't detach: a hidden <audio> keeps playing
     if(vis) shown++;
   });
@@ -508,7 +763,70 @@ function paintItems(){
     el.remove(); cards.delete(id);
   }
   const e=$('#empty');
+  const msg=q?'No documents match "'+query.trim()+'".':'This folder is empty.';
+  if(e.textContent!==msg) e.textContent=msg;
   if(e.hidden===(shown===0)) e.hidden=!(shown===0);
+}
+
+/* Queue panel. Holds no <audio>, so rebuilding it is safe -- unlike #lib. */
+let qCollapsed=false;
+try{ qCollapsed = localStorage.getItem('pa:queue:collapsed')==='1'; }catch(e){}
+
+function paintQueue(d){
+  const jobs=(d.jobs||[]).filter(j=>j.state!=='done'||j.recent);
+  const panel=$('#qpanel'), qh=$('#queue');
+  if(!panel||!qh) return;
+  if(!jobs.length){ panel.hidden=true; qh.textContent=''; return; }
+  panel.hidden=false;
+  panel.classList.toggle('collapsed', qCollapsed);
+  const tg=$('#qtoggle'); if(tg) tg.setAttribute('aria-expanded', String(!qCollapsed));
+
+  const run=jobs.filter(j=>j.state==='running'||j.state==='error');
+  const wait=jobs.filter(j=>j.state==='queued');
+  $('#qcount').textContent = run.length && wait.length ? run.length+'+'+wait.length
+                           : String(jobs.length);
+  if(qCollapsed){ qh.textContent=''; return; }
+
+  qh.textContent='';
+  const row=(j,pos)=>{
+    const el=document.createElement('div');
+    el.className='job'+(j.state==='running'?' run':j.state==='error'?' err':'');
+    const nm=document.createElement('div'); nm.className='nm'; nm.textContent=j.title;
+    el.appendChild(nm);
+    if(j.state==='running'){
+      const bar=document.createElement('div'); bar.className='bar';
+      const i=document.createElement('i'); i.style.width=(j.pct||0)+'%';
+      bar.appendChild(i); el.appendChild(bar);
+    }
+    const st=document.createElement('div'); st.className='st';
+    st.textContent = j.state==='running' ? j.stage+(j.pct?' '+j.pct+'%':'')
+                   : j.state==='error'   ? 'failed'
+                   : '#'+pos+' in queue';
+    el.appendChild(st);
+    if(j.state==='error'){
+      /* the reason, visible -- not buried in a tooltip -- plus a way back */
+      if(j.error){
+        const d=document.createElement('div'); d.className='qerr';
+        d.textContent=j.error; d.title=j.error; el.appendChild(d);
+      }
+      const b=document.createElement('button');
+      b.type='button'; b.className='btn quiet tiny qretry'; b.textContent='Retry';
+      b.addEventListener('click',()=>{
+        api('POST','/api/items/'+encodeURIComponent(j.id)+'/render')
+          .then(()=>{toast('Queued for narration');fast=true;schedule();load();});
+      });
+      el.appendChild(b);
+    }
+    return el;
+  };
+  run.forEach(j=>qh.appendChild(row(j,0)));
+  const SHOW=12;
+  wait.slice(0,SHOW).forEach((j,n)=>qh.appendChild(row(j,n+1)));
+  if(wait.length>SHOW){
+    const more=document.createElement('div'); more.className='qmore';
+    more.textContent='+ '+(wait.length-SHOW)+' more waiting';
+    qh.appendChild(more);
+  }
 }
 
 function paint(d){
@@ -521,26 +839,9 @@ function paint(d){
   setText(document,'#dest',fullname(cur===ALL?ROOT:cur));
   $('#m4b').style.display=d.m4b?'inline-block':'none';
 
-  const q=(d.jobs||[]).filter(j=>j.state!=='done'||j.recent);
-  const qh=$('#queue');
-  /* #queue holds no <audio>, so a rebuild here is harmless. */
-  if(!q.length){ if(qh.childElementCount) qh.textContent=''; }
-  else{
-    qh.textContent='';
-    for(const j of q){
-      const d1=document.createElement('div'); d1.className='job';
-      const nm=document.createElement('div'); nm.className='nm'; nm.textContent=j.title;
-      const bar=document.createElement('div'); bar.className='bar';
-      const i=document.createElement('i'); i.style.width=(j.pct||0)+'%'; bar.appendChild(i);
-      nm.appendChild(bar);
-      const st=document.createElement('div'); st.className='st';
-      st.textContent=j.stage+(j.pct?' '+j.pct+'%':'');
-      d1.append(nm,st); qh.appendChild(d1);
-      if(j.state==='error'&&j.error){ st.title=j.error; }
-    }
-  }
+  paintQueue(d);
 
-  paintTree(); paintCrumbs(); paintFolders(); paintItems();
+  paintTree(); paintCrumbs(); paintItems();
 
   paintFoot(d);
 
@@ -557,9 +858,15 @@ async function api(method,url,body){
   if(!r.ok){ toast('Failed: '+(j.detail||r.status)); throw new Error(j.detail||r.status); }
   return j;
 }
+/* a dead backend used to fail silently; now it raises the banner until a poll
+   gets through again, then drops it without a sound */
+function netState(bad){ const b=$('#netbar'); if(b.hidden===bad) b.hidden=!bad; }
 async function load(){
-  try{ const r=await fetch('/api/library',{cache:'no-store'}); paint(await r.json()); }
-  catch(e){}
+  try{
+    const r=await fetch('/api/library',{cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    paint(await r.json()); netState(false);
+  }catch(e){ netState(true); }
 }
 function schedule(){
   clearInterval(timer);
@@ -572,29 +879,55 @@ function move(id,fid){
 
 /* ---------- navigation + folder actions (delegated, so rebuilt nodes work) ---------- */
 $('#tree').addEventListener('click',e=>{
-  const n=e.target.closest('.tnode'); if(n) go(parseInt(n.dataset.fid,10));
+  const n=e.target.closest('.tnode'); if(!n) return;
+  const fid=parseInt(n.dataset.fid,10);
+  const b=e.target.closest('button');
+  const act=b?b.dataset.act:null;
+  if(act==='sub'){
+    newFolder(fid);
+  }else if(act==='rename'){
+    const f=fmap().get(fid);
+    dlgPrompt('Folder name',f?f.name:'','Rename').then(v=>{
+      if(v===null)return;
+      api('PATCH','/api/folders/'+fid,{name:v}).then(()=>load());
+    });
+  }else if(act==='del'){
+    const f=fmap().get(fid);
+    dlgConfirm('Delete folder "'+(f?f.name:fid)+'"?',
+      'Its contents move up one level. No document, PDF or audio file is deleted.',
+      'Delete folder',true).then(ok=>{
+      if(!ok)return;
+      api('DELETE','/api/folders/'+fid).then(r=>{toast('Folder deleted, '+r.items_moved+' items moved up');load();});
+    });
+  }else go(fid);   // the label button, or anywhere else on the row
+});
+$('#tree').addEventListener('dragstart',e=>{
+  const t=e.target.closest('.tnode'); if(!t||!t.draggable)return;
+  e.dataTransfer.setData('text/plain','folder:'+t.dataset.fid);
+  e.dataTransfer.effectAllowed='move';
 });
 $('#crumbs').addEventListener('click',e=>{
-  const a=e.target.closest('a[data-fid]'); if(a) go(parseInt(a.dataset.fid,10));
+  const a=e.target.closest('button[data-fid]'); if(a) go(parseInt(a.dataset.fid,10));
 });
-$('#folders').addEventListener('click',e=>{
-  const t=e.target.closest('.ftile'); if(!t) return;
-  const fid=parseInt(t.dataset.fid,10);
-  const b=e.target.closest('button');
-  if(!b){ go(fid); return; }
-  if(b.dataset.act==='rename'){
-    const f=fmap().get(fid); const v=prompt('Folder name',f?f.name:''); if(v===null)return;
-    api('PATCH','/api/folders/'+fid,{name:v}).then(()=>load());
-  }else if(b.dataset.act==='del'){
-    const f=fmap().get(fid);
-    if(!confirm('Delete folder "'+(f?f.name:fid)+'"?\n\nIts contents move up one level. '+
-      'No document, PDF or audio file is deleted.'))return;
-    api('DELETE','/api/folders/'+fid).then(r=>{toast('Folder deleted, '+r.items_moved+' items moved up');load();});
-  }
-});
-$('#newfolder').addEventListener('click',()=>{
-  const v=prompt('New folder in '+fullname(cur===ALL?ROOT:cur)); if(!v)return;
-  api('POST','/api/folders',{name:v,parent_id:cur===ALL?ROOT:cur}).then(()=>load());
+/* A folder is created where you are: the toolbar button makes one in the folder
+   on screen, a tree row's + makes one inside that row's folder. */
+function newFolder(parent){
+  dlgPrompt('New folder in '+fullname(parent),'','Create folder').then(v=>{
+    if(!v)return;
+    api('POST','/api/folders',{name:v,parent_id:parent})
+      .then(f=>{toast('Created folder "'+f.name+'"');load();});
+  });
+}
+$('#newfolder').addEventListener('click',()=>newFolder(cur===ALL?ROOT:cur));
+
+/* ---------- search & sort ---------- */
+$('#q').addEventListener('input',e=>{ query=e.target.value; if(data)paintItems(); });
+const sortSel=$('#sort');
+if([...sortSel.options].some(o=>o.value===sortBy)) sortSel.value=sortBy; else sortBy='order';
+sortSel.addEventListener('change',()=>{
+  sortBy=sortSel.value;
+  try{localStorage.setItem('pa:sort',sortBy);}catch(e){}
+  if(data)paintItems();
 });
 
 /* ---------- drag & drop of items and folders onto folders ---------- */
@@ -624,14 +957,14 @@ function dropTargets(container,sel){
   });
 }
 dropTargets($('#tree'),'.tnode');
-dropTargets($('#folders'),'.ftile');
-$('#folders').addEventListener('dragstart',e=>{
-  const t=e.target.closest('.ftile'); if(!t)return;
-  e.dataTransfer.setData('text/plain','folder:'+t.dataset.fid);
-  e.dataTransfer.effectAllowed='move';
-});
 
 /* ---------- upload: files, many files, or a whole directory tree ---------- */
+$('#qtoggle').addEventListener('click',()=>{
+  qCollapsed=!qCollapsed;
+  try{ localStorage.setItem('pa:queue:collapsed', qCollapsed?'1':'0'); }catch(e){}
+  load();
+});
+
 const drop=$('#drop'), file=$('#file'), dir=$('#dir');
 $('#pickfiles').onclick=()=>file.click();
 $('#pickdir').onclick=()=>dir.click();
