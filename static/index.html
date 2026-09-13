@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paper Audiobook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#F6F8F5; --raise:#FFFFFF; --ink:#141A17; --ink-2:#3D4842; --mute:#6C7973;
+  --rule:#DCE2DC; --rule-2:#EBEFEA;
+  --accent:#146B5C; --accent-soft:#E2EFEA; --accent-ink:#0E5245;
+  --mark:#9A6A18; --mark-soft:#F3E9D4;
+  --bad:#9B2C2C; --bad-soft:#F6E4E4;
+  --shadow:0 1px 2px rgba(20,26,23,.05);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#101512; --raise:#171D1A; --ink:#E7EDE8; --ink-2:#B6C1BA; --mute:#818E87;
+  --rule:#28312C; --rule-2:#1E2622;
+  --accent:#4FB49B; --accent-soft:#16302A; --accent-ink:#8FD9C6;
+  --mark:#D9A650; --mark-soft:#2D2517;
+  --bad:#E88A8A; --bad-soft:#33201F;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+}}
+:root[data-theme="dark"]{
+  --paper:#101512; --raise:#171D1A; --ink:#E7EDE8; --ink-2:#B6C1BA; --mute:#818E87;
+  --rule:#28312C; --rule-2:#1E2622;
+  --accent:#4FB49B; --accent-soft:#16302A; --accent-ink:#8FD9C6;
+  --mark:#D9A650; --mark-soft:#2D2517;
+  --bad:#E88A8A; --bad-soft:#33201F;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Source Serif 4","Iowan Old Style",Georgia,serif;font-size:16px;line-height:1.6;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px 80px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+
+header{padding:44px 0 22px;border-bottom:2px solid var(--ink);display:flex;
+  align-items:flex-end;gap:20px;flex-wrap:wrap}
+h1{font-family:"Zilla Slab",Rockwell,Georgia,serif;font-weight:700;
+  font-size:clamp(2rem,5vw,2.9rem);line-height:1;letter-spacing:-.015em;margin:0}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--accent);margin:0 0 12px}
+.hstat{margin-left:auto;text-align:right;font-family:"IBM Plex Mono",monospace;
+  font-size:11px;color:var(--mute);line-height:1.7;font-variant-numeric:tabular-nums}
+.hstat b{color:var(--ink);font-weight:500;font-size:15px}
+
+h2{font-family:"Zilla Slab",Georgia,serif;font-size:.95rem;letter-spacing:.03em;
+  text-transform:uppercase;margin:0 0 4px}
+section{margin-top:36px}
+.sub{color:var(--mute);font-size:.92rem;margin:0 0 16px;max-width:70ch}
+
+/* upload */
+#drop{border:1.5px dashed var(--rule);background:var(--raise);border-radius:3px;
+  padding:22px;text-align:center;transition:border-color .15s,background .15s}
+#drop.hot{border-color:var(--accent);background:var(--accent-soft)}
+#drop p{margin:0;color:var(--ink-2)}
+#drop .hint{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--mute);margin-top:7px}
+#file,#dir{display:none}
+.btn{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;
+  padding:6px 13px;border-radius:2px;border:1px solid var(--accent);background:transparent;
+  color:var(--accent);cursor:pointer;text-decoration:none;display:inline-block}
+.btn:hover{background:var(--accent);color:var(--paper)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.solid{background:var(--accent);color:var(--paper)}
+.btn.quiet{border-color:var(--rule);color:var(--mute)}
+.btn.quiet:hover{background:var(--rule-2);color:var(--ink)}
+.btn.tiny{font-size:10px;padding:3px 8px}
+.upbtns{display:flex;gap:9px;justify-content:center;margin-top:13px;flex-wrap:wrap}
+
+/* queue */
+#queue{margin-top:14px}
+.job{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--raise);
+  border:1px solid var(--rule);border-left:3px solid var(--mark);margin-bottom:8px}
+.job .nm{flex:1;font-size:.93rem}
+.job .st{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--mark)}
+.bar{height:3px;background:var(--rule-2);border-radius:2px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--mark);transition:width .4s}
+
+/* workspace chrome */
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+#crumbs{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--mute);
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#crumbs a{color:var(--accent);text-decoration:none;cursor:pointer;border-bottom:1px solid transparent}
+#crumbs a:hover{border-bottom-color:var(--accent)}
+#crumbs .here{color:var(--ink)}
+.spacer{flex:1}
+.cols{display:grid;grid-template-columns:230px 1fr;gap:26px;align-items:start}
+@media(max-width:780px){.cols{grid-template-columns:1fr}}
+aside{position:sticky;top:14px;border:1px solid var(--rule);background:var(--raise);padding:10px}
+.tnode{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:2px;cursor:pointer;
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tnode:hover{background:var(--rule-2)}
+.tnode.on{background:var(--accent-soft);color:var(--accent-ink)}
+.tnode.over{outline:1.5px dashed var(--accent);outline-offset:-1px}
+.tnode .n{margin-left:auto;color:var(--mute);font-size:10px}
+
+/* folder tiles */
+#folders{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:14px}
+.ftile{display:flex;align-items:center;gap:8px;background:var(--raise);border:1px solid var(--rule);
+  padding:8px 11px;cursor:pointer;min-width:170px}
+.ftile:hover{border-color:var(--accent)}
+.ftile.over{border-color:var(--accent);background:var(--accent-soft)}
+.ftile .nm{font-family:"IBM Plex Mono",monospace;font-size:12px;flex:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ftile .n{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--mute)}
+
+/* library: a flex column so cards are REORDERED WITH CSS `order`, never moved
+   in the DOM. Moving or rebuilding a node that contains a playing <audio>
+   stops playback -- the bug this whole structure exists to prevent. */
+#lib{display:flex;flex-direction:column}
+.card{background:var(--raise);border:1px solid var(--rule);padding:16px 18px;margin-bottom:10px}
+.card[hidden]{display:none!important}
+.card.pending{border-left:3px solid var(--mute)}
+.card.ready{border-left:3px solid var(--accent)}
+.card.busy{border-left:3px solid var(--mark)}
+.card.file{border-left:3px solid var(--rule)}
+.card.drag{opacity:.45}
+.row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.grip{cursor:grab;color:var(--mute);font-size:13px;flex:none;line-height:1;
+  align-self:center;user-select:none}
+.grip:active{cursor:grabbing}
+.ttl{font-family:"Zilla Slab",Georgia,serif;font-weight:500;font-size:1.08rem;line-height:1.3;
+  flex:1;min-width:min(100%,300px);word-break:break-word}
+.meta{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--mute);
+  margin-top:5px;font-variant-numeric:tabular-nums}
+.arte{font-family:"IBM Plex Mono",monospace;font-size:11px;margin-top:6px;color:var(--mute)}
+.arte a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+.arte a:hover{border-bottom-color:var(--accent)}
+.arte .sep{color:var(--rule)}
+.pill{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.07em;
+  padding:2px 7px;border-radius:2px;flex:none}
+.p-ok{background:var(--accent-soft);color:var(--accent-ink)}
+.p-wait{background:transparent;color:var(--mute);border:1px dashed var(--rule)}
+.p-busy{background:var(--mark-soft);color:var(--mark)}
+.p-need{background:var(--bad-soft);color:var(--bad)}
+audio{width:100%;margin-top:12px;height:36px}
+.acts{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;align-items:center}
+.tools{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap;align-items:center}
+.tools select{font-family:"IBM Plex Mono",monospace;font-size:10.5px;padding:3px 6px;
+  background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:2px;max-width:230px}
+footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--rule);
+  font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--mute);line-height:1.8}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--ink);
+  color:var(--paper);padding:10px 18px;border-radius:3px;font-family:"IBM Plex Mono",monospace;
+  font-size:12px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:20;
+  max-width:min(92vw,620px);text-align:center}
+.toast.show{opacity:1}
+#empty{color:var(--mute);font-size:.92rem;font-style:italic}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <p class="eyebrow">homelab &middot; kokoro-82M &middot; cpu</p>
+    <h1>Paper Audiobook</h1>
+  </div>
+  <div class="hstat">
+    <b id="s-hours">&mdash;</b> rendered<br>
+    <span id="s-papers">&mdash;</span> &middot; <span id="s-chunks">&mdash;</span> chunks
+  </div>
+</header>
+
+<section>
+  <h2>Add to <span id="dest" class="mono" style="text-transform:none">workspace</span></h2>
+  <p class="sub">Drop a PDF, a pile of PDFs, or a whole folder. The directory tree is recreated in the workspace. Each PDF becomes <em>one</em> document: the extracted text, the chunk cache and the narrated WAV all hang off it. Rendering runs on CPU at roughly 3.5&times; realtime, so a 40-minute paper takes about 12 minutes.</p>
+  <div id="drop">
+    <p><strong>Drop files or a folder here</strong></p>
+    <p class="hint">nested folders are rebuilt &middot; non-PDFs are kept as attachments &middot; PDFs are queued in order</p>
+    <div class="upbtns">
+      <button class="btn" id="pickfiles">Choose files</button>
+      <button class="btn" id="pickdir">Choose folder</button>
+    </div>
+  </div>
+  <input type="file" id="file" multiple>
+  <input type="file" id="dir" webkitdirectory directory multiple>
+  <div id="queue"></div>
+</section>
+
+<section>
+  <div class="toolbar">
+    <h2 style="margin:0">Workspace</h2>
+    <nav id="crumbs" aria-label="Breadcrumb"></nav>
+    <span class="spacer"></span>
+    <button class="btn quiet tiny" id="newfolder">New folder</button>
+    <a class="btn quiet tiny" id="m4b" href="/m4b" style="display:none">M4B</a>
+  </div>
+  <div class="cols">
+    <aside id="tree" aria-label="Folders"></aside>
+    <div>
+      <div id="folders"></div>
+      <div id="lib"></div>
+      <p id="empty" hidden>This folder is empty.</p>
+    </div>
+  </div>
+</section>
+
+<footer id="foot"></footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const ROOT=0, ALL=-1;
+const cards=new Map();      // item id -> card element. Created once, patched in place, NEVER rebuilt.
+let cur=ROOT, data=null, fast=false, timer=null, busyUploading=false;
+
+try{ const v=localStorage.getItem('pa:folder'); if(v!==null) cur=parseInt(v,10)||0; }catch(e){}
+
+const pad=n=>String(n).padStart(2,'0');
+function hms(s){if(s==null)return'--';const h=Math.floor(s/3600),m=Math.round(s%3600/60);
+  return h?`${h}h ${pad(m)}m`:`${m}m`;}
+function mmss(s){s=Math.floor(s||0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;
+  return h?`${h}:${pad(m)}:${pad(x)}`:`${m}:${pad(x)}`;}
+function mb(b){return b>=1048576?(b/1048576).toFixed(b>104857600?0:1)+' MB'
+  :b>=1024?(b/1024).toFixed(0)+' kB':b+' B';}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),4000);}
+const setText=(el,sel,v)=>{const n=el.querySelector(sel);if(n&&n.textContent!==v)n.textContent=v;};
+const setAttr=(el,k,v)=>{if(el.getAttribute(k)!==v)el.setAttribute(k,v);};
+
+/* ---------- folder helpers (pure, computed from the payload) ---------- */
+function fmap(){const m=new Map();for(const f of (data?data.folders:[]))m.set(f.id,f);return m;}
+function fchildren(id){return (data?data.folders:[]).filter(f=>f.parent_id===id)
+  .sort((a,b)=>a.name.localeCompare(b.name));}
+function fpath(id){const m=fmap(),out=[];let g=0;
+  while(id&&id!==ROOT&&m.has(id)&&g++<40){const f=m.get(id);out.unshift(f);id=f.parent_id;}
+  return out;}
+function fullname(id){const p=fpath(id);return p.length?p.map(f=>f.name).join(' / '):'workspace';}
+function counts(id){let n=0;for(const it of (data?data.items:[]))if(it.folder_id===id)n++;
+  for(const c of fchildren(id))n+=counts(c.id);return n;}
+
+function go(id){cur=id;try{localStorage.setItem('pa:folder',String(id));}catch(e){}
+  if(data)paint(data);}
+
+/* ---------- the audio element: created exactly ONCE per item ----------
+   Rebuilding it (the old innerHTML approach) tore the live player out of the
+   DOM on every poll and killed playback after a couple of seconds. */
+function attachAudio(slot,it){
+  const a=document.createElement('audio');
+  a.controls=true; a.preload='none'; a.src=it.audio.url;
+  const key='pa:pos:'+it.id;
+  let saved=0; try{saved=parseFloat(localStorage.getItem(key)||'0')||0;}catch(e){}
+
+  a.addEventListener('loadedmetadata',()=>{
+    if(saved>5 && a.duration && saved<a.duration-5){ a.currentTime=saved; }
+  });
+  let mark=0;
+  a.addEventListener('timeupdate',()=>{
+    if(Math.abs(a.currentTime-mark)>=5){
+      mark=a.currentTime;
+      try{localStorage.setItem(key,String(a.currentTime));}catch(e){}
+      const r=slot.querySelector('.resume'); if(r) r.textContent='at '+mmss(a.currentTime);
+    }
+  });
+  a.addEventListener('ended',()=>{try{localStorage.removeItem(key);}catch(e){}});
+  a.addEventListener('error',()=>toast('Playback error on '+it.title));
+
+  const acts=document.createElement('div');
+  acts.className='acts';
+  const dl=document.createElement('a');
+  dl.className='btn'; dl.download=''; dl.href=it.audio.url; dl.textContent='Download WAV';
+  const sz=document.createElement('span'); sz.className='meta'; sz.style.margin='0';
+  const rs=document.createElement('span'); rs.className='meta resume';
+  rs.style.margin='0'; rs.style.color='var(--mark)';
+  acts.append(dl,sz,rs);
+  slot.append(a,acts);
+  if(saved>5) rs.textContent='resume '+mmss(saved);
+  return a;
+}
+const playing=el=>{const a=el.querySelector('audio');return a&&!a.paused&&!a.ended;};
+
+/* ---------- cards ---------- */
+function makeCard(it){
+  const el=document.createElement('div');
+  el.className='card pending';
+  /* innerHTML on a FRESH, DETACHED div, once, before any <audio> exists.
+     #lib itself is never assigned innerHTML -- see the CSS note above. */
+  el.innerHTML=
+    '<div class="row"><span class="grip" draggable="true" title="Drag onto a folder">&#10495;</span>'+
+    '<span class="ttl"></span><span class="pill"></span></div>'+
+    '<div class="meta"></div>'+
+    '<div class="arte"><a class="a-pdf" target="_blank" rel="noopener"></a>'+
+    '<span class="sep"></span><a class="a-wav"></a><span class="a-txt-sep"></span>'+
+    '<a class="a-txt" target="_blank" rel="noopener"></a><span class="a-none"></span></div>'+
+    '<div class="bar" hidden><i style="width:0%"></i></div>'+
+    '<div class="slot"></div>'+
+    '<div class="tools"><select class="mv" title="Move to folder"></select>'+
+    '<button class="btn quiet tiny b-render">Render</button>'+
+    '<button class="btn quiet tiny b-rename">Rename</button>'+
+    '<button class="btn quiet tiny b-arch">Archive</button></div>';
+
+  el.querySelector('.grip').addEventListener('dragstart',e=>{
+    e.dataTransfer.setData('text/plain','item:'+it.id);
+    e.dataTransfer.effectAllowed='move'; el.classList.add('drag');
+  });
+  el.querySelector('.grip').addEventListener('dragend',()=>el.classList.remove('drag'));
+  el.querySelector('.mv').addEventListener('change',ev=>{
+    move(it.id, parseInt(ev.target.value,10));
+  });
+  el.querySelector('.b-rename').addEventListener('click',()=>{
+    const cell=el.querySelector('.ttl');
+    const v=prompt('Name for this document', cell.textContent); if(v===null)return;
+    api('PATCH','/api/items/'+encodeURIComponent(it.id),{title:v})
+      .then(()=>{toast('Renamed');load();});
+  });
+  el.querySelector('.b-arch').addEventListener('click',()=>{
+    if(!confirm('Archive "'+el.querySelector('.ttl').textContent+'"?\n\n'+
+       'It disappears from the workspace. Nothing is deleted from disk — the '+
+       'PDF, the chunk cache and the WAV all stay.'))return;
+    api('DELETE','/api/items/'+encodeURIComponent(it.id))
+      .then(()=>{toast('Archived');load();});
+  });
+  el.querySelector('.b-render').addEventListener('click',()=>{
+    api('POST','/api/items/'+encodeURIComponent(it.id)+'/render')
+      .then(()=>{toast('Queued for narration');fast=true;schedule();load();});
+  });
+  return el;
+}
+
+function optionsSig(){return (data?data.folders:[]).map(f=>f.id+':'+f.parent_id+':'+f.name).join('|');}
+function fillMove(sel,it){
+  const sig=optionsSig()+'#'+it.folder_id;
+  if(sel._sig===sig || sel===document.activeElement) return;   // never yank an open menu
+  sel._sig=sig;
+  const opts=[{id:ROOT,label:'⌂ workspace'}];
+  const walk=(pid,depth)=>{for(const f of fchildren(pid)){
+    opts.push({id:f.id,label:' '.repeat(depth*2)+'└ '+f.name}); walk(f.id,depth+1);}};
+  walk(ROOT,1);
+  sel.textContent='';
+  for(const o of opts){
+    const n=document.createElement('option');
+    n.value=String(o.id); n.textContent=o.label;
+    if(o.id===it.folder_id) n.selected=true;
+    sel.appendChild(n);
+  }
+}
+
+function updateCard(el,it){
+  const paper=it.kind==='paper';
+  const busy=it.state==='rendering'||it.state==='queued';
+  const cls='card '+(paper?(it.audio.present?'ready':(busy?'busy':'pending')):'file');
+  if(el.className.replace(' drag','')!==cls) el.className=cls+(el.classList.contains('drag')?' drag':'');
+
+  setText(el,'.ttl',it.title);
+  const pill=el.querySelector('.pill');
+  const pcls=it.audio&&it.audio.present?'pill p-ok':busy?'pill p-busy'
+      :it.state==='needs PDF'?'pill p-need':'pill p-wait';
+  if(pill.textContent!==it.state) pill.textContent=it.state;
+  if(pill.className!==pcls) pill.className=pcls;
+
+  const where=cur===ALL?fullname(it.folder_id):null;
+  const bits=paper
+    ? [it.authors,it.venue,it.audio.present?hms(it.audio.seconds):null,
+       it.chunks?it.chunks+' chunks':null,it.suspect?it.suspect+' suspect':null,where]
+    : ['attachment', it.file.present?mb(it.file.bytes):'missing', where];
+  setText(el,'.meta',bits.filter(Boolean).join(' · '));
+
+  /* The unified line: one document, its source and its narration side by side. */
+  const apdf=el.querySelector('.a-pdf'), awav=el.querySelector('.a-wav'),
+        sep=el.querySelector('.sep'), atxt=el.querySelector('.a-txt'),
+        tsep=el.querySelector('.a-txt-sep'), none=el.querySelector('.a-none');
+  if(paper){
+    if(it.pdf.present){apdf.href=it.pdf.url;apdf.textContent=it.name+'  '+mb(it.pdf.bytes);}
+    else{apdf.removeAttribute('href');apdf.textContent=it.name+'  (no file yet)';}
+    if(it.audio.present){
+      sep.textContent='  +  '; awav.href=it.audio.url;
+      awav.textContent=it.audio.name+'  '+mb(it.audio.bytes);
+    }else{sep.textContent='';awav.removeAttribute('href');awav.textContent='';}
+    if(it.text.present){tsep.textContent='  +  ';atxt.href=it.text.url;atxt.textContent='text';}
+    else{tsep.textContent='';atxt.removeAttribute('href');atxt.textContent='';}
+    none.textContent='';
+  }else{
+    apdf.removeAttribute('href'); apdf.textContent='';
+    sep.textContent=''; awav.removeAttribute('href'); awav.textContent='';
+    tsep.textContent=''; atxt.removeAttribute('href'); atxt.textContent='';
+    if(it.file.present){none.textContent='';apdf.href=it.file.url;apdf.textContent=it.name+'  '+mb(it.file.bytes);}
+    else none.textContent=it.name+'  (missing)';
+  }
+
+  const bar=el.querySelector('.bar'), job=(data.jobs||[]).find(j=>j.id===it.id);
+  if(busy&&job){bar.hidden=false;bar.firstElementChild.style.width=(job.pct||0)+'%';}
+  else if(!bar.hidden) bar.hidden=true;
+
+  const slot=el.querySelector('.slot');
+  if(paper&&it.audio.present&&!slot.querySelector('audio')){
+    attachAudio(slot,it);
+    slot.querySelector('.acts .meta').textContent=mb(it.audio.bytes);
+  }
+
+  const rb=el.querySelector('.b-render');
+  const canRender=paper&&it.pdf.present&&!busy;
+  if(rb.hidden===canRender) rb.hidden=!canRender;
+  if(canRender){const t=it.audio.present?'Re-render':'Render'; if(rb.textContent!==t)rb.textContent=t;}
+  fillMove(el.querySelector('.mv'),it);
+}
+
+/* ---------- folder chrome (no <audio> lives in these containers, so a
+   wholesale rebuild here is safe; #lib is the one that must never be) ---------- */
+function paintTree(){
+  const box=$('#tree');
+  box.textContent='';
+  const mk=(id,name,depth,extra)=>{
+    const n=document.createElement('div');
+    n.className='tnode'+(cur===id?' on':'');
+    n.dataset.fid=String(id);
+    n.style.paddingLeft=(6+depth*12)+'px';
+    const t=document.createElement('span'); t.textContent=name;
+    const c=document.createElement('span'); c.className='n'; c.textContent=extra;
+    n.append(t,c);
+    box.appendChild(n);
+    return n;
+  };
+  mk(ALL,'≡ all documents',0,String((data.items||[]).length));
+  mk(ROOT,'⌂ workspace',0,String(counts(ROOT)));
+  const walk=(pid,depth)=>{for(const f of fchildren(pid)){
+    mk(f.id,'└ '+f.name,depth,String(counts(f.id))); walk(f.id,depth+1);}};
+  walk(ROOT,1);
+}
+function paintCrumbs(){
+  const box=$('#crumbs'); box.textContent='';
+  const add=(label,id,here)=>{
+    const a=document.createElement(here?'span':'a');
+    a.textContent=label; if(here)a.className='here'; else a.dataset.fid=String(id);
+    box.appendChild(a);
+  };
+  if(cur===ALL){add('all documents',ALL,true);return;}
+  const path=fpath(cur);
+  add('workspace',ROOT,path.length===0);
+  path.forEach((f,i)=>{
+    const s=document.createElement('span'); s.textContent='/'; box.appendChild(s);
+    add(f.name,f.id,i===path.length-1);
+  });
+}
+
+function paintFolders(){
+  const box=$('#folders'); box.textContent='';
+  if(cur===ALL) return;
+  for(const f of fchildren(cur)){
+    const t=document.createElement('div');
+    t.className='ftile'; t.dataset.fid=String(f.id); t.draggable=true;
+    const nm=document.createElement('span'); nm.className='nm'; nm.textContent='▸ '+f.name;
+    const n=document.createElement('span'); n.className='n'; n.textContent=counts(f.id);
+    const ren=document.createElement('button'); ren.className='btn quiet tiny'; ren.textContent='✎';
+    ren.title='Rename'; ren.dataset.act='rename';
+    const del=document.createElement('button'); del.className='btn quiet tiny'; del.textContent='✕';
+    del.title='Delete folder (contents move up)'; del.dataset.act='del';
+    t.append(nm,n,ren,del);
+    box.appendChild(t);
+  }
+}
+
+/* ---------- footer ----------
+   Holds the AGPL-3.0 source offer. Section 13 of the AGPL says that if users
+   interact with this program over a network they must be able to get its
+   source; a link in the interface is the way the licence itself suggests.
+   Set PA_SOURCE_URL to wherever your copy lives -- including any changes you
+   made -- and it appears here. #foot never holds an <audio>, so rebuilding it
+   is safe (unlike #lib). */
+function paintFoot(d){
+  const f=$('#foot'); if(!f) return;
+  const txt='Kokoro-82M (Apache-2.0) on CPU · '+d.total_chunks.toLocaleString()+
+    ' chunks · '+d.suspect+' flagged · '+d.documents+' documents, '+d.files+
+    ' attachments · '+(d.m4b?'M4B built':'M4B needs ffmpeg')+' · '+d.host+' · ';
+  const sig=txt+'|'+(d.source_url||'');
+  if(f._sig===sig) return;                 // no needless DOM churn on every poll
+  f._sig=sig;
+  f.textContent=txt;
+  if(d.source_url){
+    const a=document.createElement('a');
+    a.href=d.source_url; a.target='_blank'; a.rel='noopener';
+    a.textContent='AGPL-3.0 source';
+    f.appendChild(a);
+  }else{
+    f.appendChild(document.createTextNode('AGPL-3.0'));
+  }
+}
+
+/* ---------- the one function that touches #lib ---------- */
+function paintItems(){
+  const lib=$('#lib'), seen=new Set();
+  const list=(data.items||[]).slice().sort((a,b)=>
+    (a.kind==='paper'?0:1)-(b.kind==='paper'?0:1) ||
+    (a.order||0)-(b.order||0) ||
+    a.title.localeCompare(b.title));
+  let shown=0;
+  list.forEach((it,i)=>{
+    seen.add(it.id);
+    let el=cards.get(it.id);
+    if(!el){ el=makeCard(it); cards.set(it.id,el); lib.appendChild(el); }  // appended ONCE
+    updateCard(el,it);
+    el.style.order=String(i+1);           // reorder in CSS; the DOM node never moves
+    const vis=(cur===ALL)||(it.folder_id===cur);
+    if(el.hidden===vis) el.hidden=!vis;    // hide, don't detach: a hidden <audio> keeps playing
+    if(vis) shown++;
+  });
+  for(const [id,el] of cards){
+    if(seen.has(id)) continue;
+    if(playing(el)){ el.hidden=false; shown++; continue; }   // never yank a live player
+    el.remove(); cards.delete(id);
+  }
+  const e=$('#empty');
+  if(e.hidden===(shown===0)) e.hidden=!(shown===0);
+}
+
+function paint(d){
+  data=d;
+  const m=fmap();
+  if(cur!==ROOT&&cur!==ALL&&!m.has(cur)) cur=ROOT;    // folder deleted under us
+  setText(document,'#s-hours',(d.total_seconds/3600).toFixed(2)+'h');
+  setText(document,'#s-papers',d.ready+'/'+d.documents+' narrated');
+  setText(document,'#s-chunks',d.total_chunks.toLocaleString());
+  setText(document,'#dest',fullname(cur===ALL?ROOT:cur));
+  $('#m4b').style.display=d.m4b?'inline-block':'none';
+
+  const q=(d.jobs||[]).filter(j=>j.state!=='done'||j.recent);
+  const qh=$('#queue');
+  /* #queue holds no <audio>, so a rebuild here is harmless. */
+  if(!q.length){ if(qh.childElementCount) qh.textContent=''; }
+  else{
+    qh.textContent='';
+    for(const j of q){
+      const d1=document.createElement('div'); d1.className='job';
+      const nm=document.createElement('div'); nm.className='nm'; nm.textContent=j.title;
+      const bar=document.createElement('div'); bar.className='bar';
+      const i=document.createElement('i'); i.style.width=(j.pct||0)+'%'; bar.appendChild(i);
+      nm.appendChild(bar);
+      const st=document.createElement('div'); st.className='st';
+      st.textContent=j.stage+(j.pct?' '+j.pct+'%':'');
+      d1.append(nm,st); qh.appendChild(d1);
+      if(j.state==='error'&&j.error){ st.title=j.error; }
+    }
+  }
+
+  paintTree(); paintCrumbs(); paintFolders(); paintItems();
+
+  paintFoot(d);
+
+  const active=(d.jobs||[]).some(j=>j.state==='running'||j.state==='queued');
+  if(active!==fast){ fast=active; schedule(); }
+}
+
+/* ---------- api ---------- */
+async function api(method,url,body){
+  const r=await fetch(url,{method,
+    headers:body?{'Content-Type':'application/json'}:undefined,
+    body:body?JSON.stringify(body):undefined});
+  let j={}; try{ j=await r.json(); }catch(e){}
+  if(!r.ok){ toast('Failed: '+(j.detail||r.status)); throw new Error(j.detail||r.status); }
+  return j;
+}
+async function load(){
+  try{ const r=await fetch('/api/library',{cache:'no-store'}); paint(await r.json()); }
+  catch(e){}
+}
+function schedule(){
+  clearInterval(timer);
+  timer=setInterval(load, fast?3000:30000);
+}
+function move(id,fid){
+  api('PATCH','/api/items/'+encodeURIComponent(id),{folder_id:fid})
+    .then(()=>{toast('Moved to '+fullname(fid));load();});
+}
+
+/* ---------- navigation + folder actions (delegated, so rebuilt nodes work) ---------- */
+$('#tree').addEventListener('click',e=>{
+  const n=e.target.closest('.tnode'); if(n) go(parseInt(n.dataset.fid,10));
+});
+$('#crumbs').addEventListener('click',e=>{
+  const a=e.target.closest('a[data-fid]'); if(a) go(parseInt(a.dataset.fid,10));
+});
+$('#folders').addEventListener('click',e=>{
+  const t=e.target.closest('.ftile'); if(!t) return;
+  const fid=parseInt(t.dataset.fid,10);
+  const b=e.target.closest('button');
+  if(!b){ go(fid); return; }
+  if(b.dataset.act==='rename'){
+    const f=fmap().get(fid); const v=prompt('Folder name',f?f.name:''); if(v===null)return;
+    api('PATCH','/api/folders/'+fid,{name:v}).then(()=>load());
+  }else if(b.dataset.act==='del'){
+    const f=fmap().get(fid);
+    if(!confirm('Delete folder "'+(f?f.name:fid)+'"?\n\nIts contents move up one level. '+
+      'No document, PDF or audio file is deleted.'))return;
+    api('DELETE','/api/folders/'+fid).then(r=>{toast('Folder deleted, '+r.items_moved+' items moved up');load();});
+  }
+});
+$('#newfolder').addEventListener('click',()=>{
+  const v=prompt('New folder in '+fullname(cur===ALL?ROOT:cur)); if(!v)return;
+  api('POST','/api/folders',{name:v,parent_id:cur===ALL?ROOT:cur}).then(()=>load());
+});
+
+/* ---------- drag & drop of items and folders onto folders ---------- */
+function dropTargets(container,sel){
+  container.addEventListener('dragover',e=>{
+    if(e.dataTransfer.types.includes('Files')) return;      // that is an upload, not a move
+    const t=e.target.closest(sel); if(!t) return;
+    e.preventDefault(); e.dataTransfer.dropEffect='move';
+    container.querySelectorAll('.over').forEach(x=>x.classList.remove('over'));
+    t.classList.add('over');
+  });
+  container.addEventListener('dragleave',e=>{
+    const t=e.target.closest(sel); if(t) t.classList.remove('over');
+  });
+  container.addEventListener('drop',e=>{
+    const t=e.target.closest(sel); if(!t) return;
+    if(e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault(); t.classList.remove('over');
+    const raw=e.dataTransfer.getData('text/plain')||'';
+    const fid=parseInt(t.dataset.fid,10);
+    if(raw.startsWith('item:')) move(raw.slice(5),fid);
+    else if(raw.startsWith('folder:')){
+      const src=parseInt(raw.slice(7),10);
+      if(src===fid)return;
+      api('PATCH','/api/folders/'+src,{parent_id:fid}).then(()=>{toast('Folder moved');load();});
+    }
+  });
+}
+dropTargets($('#tree'),'.tnode');
+dropTargets($('#folders'),'.ftile');
+$('#folders').addEventListener('dragstart',e=>{
+  const t=e.target.closest('.ftile'); if(!t)return;
+  e.dataTransfer.setData('text/plain','folder:'+t.dataset.fid);
+  e.dataTransfer.effectAllowed='move';
+});
+
+/* ---------- upload: files, many files, or a whole directory tree ---------- */
+const drop=$('#drop'), file=$('#file'), dir=$('#dir');
+$('#pickfiles').onclick=()=>file.click();
+$('#pickdir').onclick=()=>dir.click();
+file.onchange=()=>{send([...file.files].map(f=>({file:f,path:f.name})));file.value='';};
+dir.onchange=()=>{send([...dir.files].map(f=>({file:f,path:f.webkitRelativePath||f.name})));dir.value='';};
+
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{
+  if(!e.dataTransfer.types.includes('Files'))return;
+  e.preventDefault();drop.classList.add('hot');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{drop.classList.remove('hot');}));
+drop.addEventListener('drop',e=>{
+  if(!e.dataTransfer.types.includes('Files'))return;
+  e.preventDefault();
+  // webkitGetAsEntry must be read synchronously, before the first await.
+  const entries=[...(e.dataTransfer.items||[])]
+    .map(i=>i.webkitGetAsEntry?i.webkitGetAsEntry():null).filter(Boolean);
+  if(!entries.length){ send([...e.dataTransfer.files].map(f=>({file:f,path:f.name}))); return; }
+  const out=[];
+  Promise.all(entries.map(en=>walk(en,'',out,0))).then(()=>send(out));
+});
+
+function walk(entry,prefix,out,depth){
+  return new Promise(res=>{
+    if(depth>12){res();return;}
+    if(entry.isFile){
+      entry.file(f=>{out.push({file:f,path:prefix+entry.name});res();},()=>res());
+    }else if(entry.isDirectory){
+      const rd=entry.createReader(), all=[];
+      const read=()=>rd.readEntries(batch=>{
+        if(!batch.length){
+          Promise.all(all.map(c=>walk(c,prefix+entry.name+'/',out,depth+1))).then(res);
+          return;
+        }
+        all.push(...batch); read();
+      },()=>res());
+      read();
+    }else res();
+  });
+}
+
+async function send(list){
+  if(!list.length) return;
+  if(busyUploading){ toast('An upload is already running'); return; }
+  busyUploading=true;
+  const dest=cur===ALL?ROOT:cur;
+  let ok=0, att=0, bad=[], nf=0;
+  try{
+    const BATCH=20, CAP=200*1048576;
+    let batch=[], size=0, done=0;
+    const flush=async()=>{
+      if(!batch.length) return;
+      toast('Uploading '+(done+1)+'–'+(done+batch.length)+' of '+list.length+'…');
+      const fd=new FormData();
+      fd.append('folder_id',String(dest));
+      for(const e of batch){
+        fd.append('path',e.path);
+        fd.append('files',e.file,e.path.split('/').pop());
+      }
+      const r=await fetch('/api/upload',{method:'POST',body:fd});
+      let j={}; try{ j=await r.json(); }catch(e){}
+      if(!r.ok){ bad.push({path:'batch',reason:j.detail||('HTTP '+r.status)}); }
+      else{ ok+=(j.queued||[]).length; att+=(j.attachments||[]).length;
+            nf+=j.folders_created||0; bad.push(...(j.skipped||[])); }
+      done+=batch.length; batch=[]; size=0;
+      fast=true; schedule(); await load();
+    };
+    for(const e of list){
+      if(batch.length>=BATCH || (size+e.file.size)>CAP) await flush();
+      batch.push(e); size+=e.file.size;
+    }
+    await flush();
+  }catch(err){ toast('Upload failed: '+err); }
+  finally{ busyUploading=false; }
+  let msg=ok+' queued for narration';
+  if(att) msg+=', '+att+' attachment'+(att>1?'s':'');
+  if(nf) msg+=', '+nf+' folder'+(nf>1?'s':'')+' created';
+  if(bad.length) msg+=' — skipped '+bad.length+': '+bad.slice(0,3)
+    .map(b=>b.path.split('/').pop()+' ('+b.reason+')').join(', ');
+  toast(msg);
+  load();
+}
+
+/* A file dropped anywhere but the drop zone would otherwise navigate away. */
+['dragover','drop'].forEach(ev=>window.addEventListener(ev,e=>{
+  if(e.dataTransfer&&[...e.dataTransfer.types].includes('Files')) e.preventDefault();
+}));
+
+schedule(); load();
+</script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+{
+  "title": "Example collection",
+  "author": "Various",
+  "papers": [
+    {
+      "id": "01-cook-how-complex-systems-fail",
+      "order": 1,
+      "title": "How Complex Systems Fail",
+      "authors": "Richard I. Cook",
+      "year": 1998,
+      "venue": "Cognitive Technologies Laboratory, University of Chicago",
+      "url": "https://www.adaptivecapacitylabs.com/HowComplexSystemsFail.pdf",
+      "access": "open",
+      "notes": "Author-distributed. Numbered list format; no references section."
+    },
+    {
+      "id": "02-bainbridge-ironies-of-automation",
+      "order": 2,
+      "title": "Ironies of Automation",
+      "authors": "Lisanne Bainbridge",
+      "year": 1983,
+      "venue": "Automatica 19(6):775-779",
+      "url": null,
+      "access": "dropin",
+      "notes": "Elsevier. Supply your own PDF as dropin/02-bainbridge-ironies-of-automation.pdf"
+    },
+    {
+      "id": "03-klein-ten-challenges",
+      "order": 3,
+      "title": "Ten Challenges for Making Automation a Team Player in Joint Human-Agent Activity",
+      "authors": "Gary Klein, David D. Woods, Jeffrey M. Bradshaw, Robert R. Hoffman, Paul J. Feltovich",
+      "year": 2004,
+      "venue": "IEEE Intelligent Systems 19(6):91-95",
+      "url": "https://www.jeffreymbradshaw.net/publications/17._Team_Players.pdf_1.pdf",
+      "access": "open-author",
+      "notes": "Author-posted copy; falls back to dropin."
+    },
+    {
+      "id": "04-yang-swe-agent-aci",
+      "order": 4,
+      "title": "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering",
+      "authors": "John Yang, Carlos E. Jimenez, Alexander Wettig, Kilian Lieret, Shunyu Yao, Karthik Narasimhan, Ofir Press",
+      "year": 2024,
+      "venue": "NeurIPS 2024",
+      "url": "https://arxiv.org/pdf/2405.15793",
+      "access": "open"
+    },
+    {
+      "id": "05-machado-revisiting-ale",
+      "order": 5,
+      "title": "Revisiting the Arcade Learning Environment: Evaluation Protocols and Open Problems for General Agents",
+      "authors": "Marlos C. Machado, Marc G. Bellemare, Erik Talvitie, Joel Veness, Matthew Hausknecht, Michael Bowling",
+      "year": 2018,
+      "venue": "JAIR 61:523-562",
+      "url": "https://arxiv.org/pdf/1709.06009",
+      "access": "open"
+    },
+    {
+      "id": "06-klees-evaluating-fuzz-testing",
+      "order": 6,
+      "title": "Evaluating Fuzz Testing",
+      "authors": "George Klees, Andrew Ruef, Benji Cooper, Shiyi Wei, Michael Hicks",
+      "year": 2018,
+      "venue": "ACM CCS 2018",
+      "url": "https://www.umiacs.umd.edu/~tdumitra/courses/ENEE657/Fall19/papers/Klees18.pdf",
+      "access": "open"
+    },
+    {
+      "id": "07-kirsh-epistemic-pragmatic-action",
+      "order": 7,
+      "title": "On Distinguishing Epistemic from Pragmatic Action",
+      "authors": "David Kirsh, Paul Maglio",
+      "year": 1994,
+      "venue": "Cognitive Science 18(4):513-549",
+      "url": "https://adrenaline.ucsd.edu/kirsh/Articles/CogsciJournal/DistinguishingEpi_prag.pdf",
+      "access": "open-author"
+    },
+    {
+      "id": "08-rasmussen-risk-management",
+      "order": 8,
+      "title": "Risk Management in a Dynamic Society: A Modelling Problem",
+      "authors": "Jens Rasmussen",
+      "year": 1997,
+      "venue": "Safety Science 27(2-3):183-213",
+      "url": null,
+      "access": "dropin",
+      "notes": "Elsevier. Supply your own PDF as dropin/08-rasmussen-risk-management.pdf"
+    },
+    {
+      "id": "09-russell-bounded-optimal-agents",
+      "order": 9,
+      "title": "Provably Bounded-Optimal Agents",
+      "authors": "Stuart J. Russell, Devika Subramanian",
+      "year": 1995,
+      "venue": "JAIR 2:575-609",
+      "url": "https://arxiv.org/pdf/cs/9505103",
+      "access": "open"
+    },
+    {
+      "id": "10-agre-lifeworld-analysis",
+      "order": 10,
+      "title": "Lifeworld Analysis",
+      "authors": "Philip E. Agre, Ian Horswill",
+      "year": 1997,
+      "venue": "JAIR 6:111-145",
+      "url": "https://jair.org/index.php/jair/article/download/10184/24177/18597",
+      "access": "open"
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+# paper-audiobook is run from a checkout, not installed as a library: every
+# stage resolves its data directories relative to __file__ (pdfs/, text/,
+# cache/, out/). So there is deliberately no [build-system] here — this file
+# carries project metadata and the lint configuration, and `requirements.txt`
+# carries the pinned install set that `install.sh` feeds to `uv pip install`.
+
+[project]
+name = "paper-audiobook"
+version = "0.1.0"
+description = "Turn academic PDFs into narrated audio: extraction, speech normalisation, Kokoro TTS on CPU, and a workspace web UI."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
+keywords = ["tts", "pdf", "audiobook", "kokoro", "accessibility", "text-to-speech"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Environment :: Web Environment",
+  "Framework :: FastAPI",
+  "Intended Audience :: End Users/Desktop",
+  "Intended Audience :: Science/Research",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Multimedia :: Sound/Audio :: Speech",
+  "Topic :: Text Processing",
+]
+
+# Pinned to the set this was developed and measured against. See
+# THIRD_PARTY_LICENCES.md for the licence of every one of these, and why the
+# project as a whole is AGPL-3.0-or-later.
+#
+# Python floor is 3.12 because that is what is tested. Do NOT assume the newest
+# CPython works: at the time of writing 3.14 has no wheels for torch or the
+# spaCy stack, so a 3.14 venv fails to install rather than failing at runtime.
+dependencies = [
+  "pymupdf==1.28.2",        # AGPL-3.0-or-later (or Artifex commercial) -- see THIRD_PARTY_LICENCES.md
+  "kokoro==0.9.4",          # pulls misaki[en] -> spacy, phonemizer-fork, espeakng-loader
+  "numpy==2.5.3",
+  "fastapi==0.141.1",
+  "starlette==1.6.0",
+  "uvicorn==0.52.4",
+  "python-multipart==0.0.32",   # required for multipart uploads; FastAPI does not pull it
+]
+
+[project.optional-dependencies]
+# The spaCy English model misaki needs for G2P. Not on PyPI, so it installs
+# from its release URL; kept separate because that URL is version-pinned.
+en = [
+  "en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
+]
+
+[project.urls]
+Documentation = "https://github.com/OWNER/paper-audiobook#readme"
+Source = "https://github.com/OWNER/paper-audiobook"
+
+# ---------------------------------------------------------------------------
+# ruff
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["venv", ".venv", "node_modules", "__pycache__"]
+
+[tool.ruff.lint]
+select = [
+  "E4",    # imports
+  "E5",    # line length
+  "E7",    # statement-level mistakes: comparisons, bare except, lambda-assign
+  "E9",    # syntax / IO errors
+  "W",     # whitespace, invalid escape sequences
+  "F",     # pyflakes: undefined names, unused imports, unused locals
+  "I",     # import sorting
+  "B",     # bugbear: mutable defaults, loop-variable capture, raise-from
+  "C4",    # comprehension rewrites
+  "UP",    # pyupgrade
+  "SIM",   # simplifications, incl. SIM115 unclosed file handles
+  "PIE",
+  "ISC",   # implicit string concatenation mistakes
+  "RUF",
+]
+ignore = [
+  # This codebase deliberately uses compact one-line clauses in the batch
+  # scripts (`if not s: body.append(""); continue`). It is a consistent,
+  # readable house style in a small pipeline, and reformatting ~70 of them
+  # would be a restyle, not a cleanup. The real bug E702 once hid here --
+  # a duplicated `ok=miss=[] ; ok=[]; miss=[]` -- has been fixed.
+  "E701",  # multiple statements on one line (colon)
+  "E702",  # multiple statements on one line (semicolon)
+  # extract.py's regexes and MATHY set contain en dashes, curly quotes,
+  # fullwidth parens and maths operators ON PURPOSE: they are exactly the
+  # characters real PDFs contain and the code exists to match them.
+  "RUF001",
+  "RUF002",
+  "RUF003",
+  # `zip(..., strict=)` adds nothing here and the pairs are built locally.
+  "B905",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The CLI stages are user-facing terminal programs; printing is their output.
+"fetch.py" = ["T201"]
+"extract.py" = ["T201"]
+"synth.py" = ["T201"]
+"build.py" = ["T201"]
+"workspace.py" = ["T201"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["workspace"]
+
+[tool.ruff.format]
+quote-style = "preserve"

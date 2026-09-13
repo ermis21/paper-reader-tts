@@ -1,0 +1,69 @@
+# ---------------------------------------------------------------------------
+# Nothing in this file is a preference. Everything listed here is either
+# third-party copyrighted material, machine-generated output, or local state.
+#
+# The corpus directories in particular MUST NEVER be committed: they hold
+# academic papers that belong to their publishers and authors, plus the audio
+# derived from them. This project ships the pipeline, never the corpus.
+#
+# NOTE ON SYNTAX: git does NOT support trailing comments. A line written as
+# `pdfs/   # source PDFs` is a pattern containing spaces and a hash, and it
+# matches nothing at all. Keep every comment on its own line.
+# ---------------------------------------------------------------------------
+
+# --- the corpus: other people's papers, and everything derived from them ---
+# downloaded or supplied source PDFs
+pdfs/
+# PDFs you supplied yourself
+dropin/
+# extracted full text of those PDFs
+text/
+# per-chunk narration WAVs
+cache/
+# concatenated per-paper audio and the M4B
+out/
+# uploaded attachments
+files/
+# upload staging
+tmp/
+
+# --- local state -----------------------------------------------------------
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+# regenerated from workspace.sqlite on every mutation
+papers.json
+papers.json.part
+papers.json.bak-*
+# your machine's overrides, sourced by ./start.sh
+local.env
+# a systemd unit rendered for your machine by ./install-service.sh
+*.service.local
+
+# --- logs ------------------------------------------------------------------
+*.log
+
+# --- python ----------------------------------------------------------------
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# --- node ------------------------------------------------------------------
+node_modules/
+package-lock.json
+npm-debug.log*
+
+# --- editors / OS ----------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~

@@ -1,0 +1,60 @@
+# Template, not a unit. Placeholders are filled in by ./install-service.sh,
+# which writes paper-audiobook-web.service.local for you to inspect before you
+# install it. Nothing here is machine-specific until you render it.
+#
+#   __USER__   the account that owns the checkout (the render must NOT be root)
+#   __GROUP__  that account's primary group
+#   __DIR__    absolute path of the checkout
+#   __HOME__   that account's home, for HF_HOME
+#   __HOST__   the bind address; 127.0.0.1 unless you deliberately chose otherwise
+#
+# Render and install:
+#   ./install-service.sh                 # loopback only (the safe default)
+#   PA_HOST=0.0.0.0 ./install-service.sh # expose on a LAN/VPN you trust
+#   sudo install -m 644 -o root -g root paper-audiobook-web.service.local \
+#        /etc/systemd/system/paper-audiobook-web.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now paper-audiobook-web
+
+[Unit]
+Description=Paper Audiobook web UI (upload PDFs, render, listen)
+Documentation=file:__DIR__/README.md
+After=network.target
+
+[Service]
+Type=simple
+User=__USER__
+Group=__GROUP__
+WorkingDirectory=__DIR__
+
+# CPU-only by design. Kokoro on CPU renders at 3.3-3.7x realtime, and keeping
+# it off the GPU means a long render never contends with whatever else on the
+# machine wants the card. Do not remove this.
+Environment=CUDA_VISIBLE_DEVICES=
+Environment=OMP_NUM_THREADS=6
+
+# The bind address. 127.0.0.1 is the shipped default because this app is
+# UNAUTHENTICATED and an upload starts a subprocess pipeline -- read
+# SECURITY.md before changing it. 0.0.0.0 exposes it to every host that can
+# reach this machine; use it only on a network you trust, and never forward
+# the port from a router.
+Environment=PA_HOST=__HOST__
+Environment=PA_PORT=3002
+
+Environment=HF_HOME=__HOME__/.cache/huggingface
+ExecStart=__DIR__/venv/bin/python __DIR__/webapp.py
+Restart=on-failure
+RestartSec=5
+
+# Renders are long; never let systemd interrupt one.
+TimeoutStopSec=30
+Nice=10
+
+# Modest hardening. The app only ever writes inside its own directory.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=__DIR__ __HOME__/.cache/huggingface
+
+[Install]
+WantedBy=multi-user.target

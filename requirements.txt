@@ -1,0 +1,42 @@
+# Pinned to the set this project was developed, measured and lint-checked
+# against (Python 3.12.13). `install.sh` feeds this file to `uv pip install`.
+#
+# LICENCE NOTICE: this dependency set is why the project ships under
+# AGPL-3.0-or-later. `pymupdf` is AGPL-3.0-or-later (or a paid Artifex
+# commercial licence), and kokoro's `misaki[en]` extra hard-requires
+# `phonemizer-fork` (GPL-3.0) and `espeakng-loader` (which ships espeak-ng,
+# GPL-3.0). See THIRD_PARTY_LICENCES.md before changing anything here.
+
+# --- PDF text extraction -------------------------------------------------
+# `page.get_text("text", sort=True)` is the reading-order extraction the whole
+# pipeline's quality rests on. See THIRD_PARTY_LICENCES.md for the permissive
+# alternatives and what swapping to one would cost.
+pymupdf==1.28.2
+
+# --- speech synthesis ----------------------------------------------------
+# kokoro pulls misaki[en], which pulls spacy, num2words, phonemizer-fork and
+# espeakng-loader; and torch + transformers for the model itself.
+kokoro==0.9.4
+numpy==2.5.3
+
+# --- web UI --------------------------------------------------------------
+fastapi==0.141.1
+starlette==1.6.0
+uvicorn==0.52.4
+# FastAPI does NOT pull this in, but `request.form()` fails without it, so
+# every upload endpoint 500s. Pin it explicitly.
+python-multipart==0.0.32
+
+# --- the spaCy English model misaki needs for G2P ------------------------
+# Not distributed on PyPI; installs from its pinned release URL.
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+
+# --- notes ---------------------------------------------------------------
+# * ffmpeg is an OPTIONAL, non-Python dependency, needed only by
+#   `./build.py --m4b`. Everything up to per-paper WAVs works without it.
+# * On Linux, plain `torch` pulls ~3 GB of CUDA wheels this project never
+#   uses -- it is CPU-only by design. `./install.sh --cpu-torch` installs the
+#   CPU-only build from PyTorch's own index instead.
+# * `soundfile` and `pymupdf4llm` were installed historically but are imported
+#   nowhere; `pymupdf4llm` additionally drags in `pymupdf-layout`, an Artifex
+#   add-on with its own licence terms. Both are deliberately absent here.
