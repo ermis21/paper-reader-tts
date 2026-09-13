@@ -232,11 +232,16 @@ Non-Python, optional, not redistributed:
 |---|---|---|
 | `ffmpeg` | LGPL-2.1+ / GPL-2+ depending on build | **optional**, used only by `./build.py --m4b`, invoked as a separate process. Not bundled, not linked. |
 
-Front-end: the UI is one self-contained HTML file with no framework and no
-build step. It loads webfonts from Google Fonts at runtime (Zilla Slab, Source
-Serif 4, IBM Plex Mono — all SIL Open Font License 1.1); nothing else is
-fetched from a third party, and no JavaScript library is vendored. `jsdom`
-(MIT) is a test-only devDependency and is never shipped or served.
+Front-end: the UI is self-contained HTML with no framework and no build step.
+It loads webfonts from Google Fonts at runtime (Zilla Slab, Source Serif 4,
+IBM Plex Mono — all SIL Open Font License 1.1). One JavaScript library is
+vendored for the synced reader page (`static/reader.html`):
+
+| package | version | licence | why it is here |
+|---|---|---|---|
+| `pdfjs-dist` | 4.10.38 | Apache-2.0 | renders PDF pages client-side so narration chunks can be highlighted on the original pages; `static/vendor/pdfjs/` (pdf.min.mjs + pdf.worker.min.mjs + its LICENSE) |
+
+`jsdom` (MIT) is a test-only devDependency and is never shipped or served.
 
 ## Deliberately removed
 

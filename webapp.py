@@ -37,6 +37,7 @@ from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
@@ -255,6 +256,21 @@ def enqueue(pid, title):
 @app.get("/", response_class=HTMLResponse)
 def index():
     return (ROOT / "static" / "index.html").read_text()
+
+
+@app.get("/reader/{pid}", response_class=HTMLResponse)
+def reader(pid: str):
+    """The synced read-along page. The paper must exist; the page itself reports
+    which artefacts (PDF, audio) are still missing."""
+    _paper_or_404(pid)
+    return (ROOT / "static" / "reader.html").read_text()
+
+
+# Vendored client-side libraries (pdf.js -- see THIRD_PARTY_LICENCES.md). Nothing
+# else under static/ is served: the two pages are delivered inline by the routes
+# above, and everything a reader needs beyond them comes from /api and /pdf.
+app.mount("/static/vendor",
+          StaticFiles(directory=ROOT / "static" / "vendor"), name="vendor")
 
 
 # ---------------- library ----------------

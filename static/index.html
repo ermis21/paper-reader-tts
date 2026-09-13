@@ -518,7 +518,8 @@ function makeCard(it){
     '<div class="meta"></div>'+
     '<div class="arte"><a class="a-pdf" target="_blank" rel="noopener"></a>'+
     '<span class="sep"></span><a class="a-wav"></a><span class="a-txt-sep"></span>'+
-    '<a class="a-txt" target="_blank" rel="noopener"></a><span class="a-none"></span></div>'+
+    '<a class="a-txt" target="_blank" rel="noopener"></a><span class="a-read-sep"></span>'+
+    '<a class="a-read" target="_blank" rel="noopener"></a><span class="a-none"></span></div>'+
     '<div class="bar" hidden><i style="width:0%"></i></div>'+
     '<div class="err" hidden title="Click to expand"></div>'+
     '<div class="slot"></div>'+
@@ -626,11 +627,18 @@ function updateCard(el,it){
     }else{sep.textContent='';awav.removeAttribute('href');awav.textContent='';}
     if(it.text.present){tsep.textContent='  +  ';atxt.href=it.text.url;atxt.textContent='text';}
     else{tsep.textContent='';atxt.removeAttribute('href');atxt.textContent='';}
+    const rsep=el.querySelector('.a-read-sep'), aread=el.querySelector('.a-read');
+    if(it.pdf.present&&it.text.present){
+      rsep.textContent='  \u00b7  '; aread.href='/reader/'+encodeURIComponent(it.id);
+      aread.textContent='read along \u2197';
+    }else{rsep.textContent='';aread.removeAttribute('href');aread.textContent='';}
     none.textContent='';
   }else{
     apdf.removeAttribute('href'); apdf.textContent='';
     sep.textContent=''; awav.removeAttribute('href'); awav.textContent='';
     tsep.textContent=''; atxt.removeAttribute('href'); atxt.textContent='';
+    const rsep2=el.querySelector('.a-read-sep'), aread2=el.querySelector('.a-read');
+    rsep2.textContent=''; aread2.removeAttribute('href'); aread2.textContent='';
     if(it.file.present){none.textContent='';apdf.href=it.file.url;apdf.textContent=it.name+'  '+mb(it.file.bytes);}
     else none.textContent=it.name+'  (missing)';
   }

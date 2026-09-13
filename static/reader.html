@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>read along — paper audiobook</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Same palette and theme contract as index.html (pa:theme / data-theme). */
+:root{
+  --paper:#F4F6F2; --raise:#FFFFFF; --ink:#151B17; --ink-2:#3C4741; --mute:#69766F;
+  --rule:#DEE4DD; --rule-2:#EBEFEA;
+  --accent:#0F6B5A; --accent-soft:#E2EFEA; --accent-ink:#0C5245;
+  --mark:#97690F; --mark-soft:rgba(240,196,80,.42);
+  --bad:#A32E2E; --bad-soft:#F7E6E6;
+  --r-lg:12px; --r-md:8px; --r-sm:6px;
+  --sh-1:0 1px 2px rgba(20,26,23,.05),0 2px 8px rgba(20,26,23,.04);
+  --sh-2:0 12px 40px rgba(20,26,23,.18);
+  --ring:0 0 0 3px rgba(15,107,90,.22);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0F1412; --raise:#171D1A; --ink:#E6ECE7; --ink-2:#B4BFB8; --mute:#7F8C85;
+  --rule:#29332D; --rule-2:#1F2723;
+  --accent:#4FB49B; --accent-soft:#17312A; --accent-ink:#8FD9C6;
+  --mark:#D9A650; --mark-soft:rgba(217,166,80,.38);
+  --bad:#E88A8A; --bad-soft:#36211F;
+  --sh-1:0 1px 2px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.3);
+  --sh-2:0 12px 40px rgba(0,0,0,.55);
+  --ring:0 0 0 3px rgba(79,180,155,.28);
+}}
+:root[data-theme="dark"]{
+  --paper:#0F1412; --raise:#171D1A; --ink:#E6ECE7; --ink-2:#B4BFB8; --mute:#7F8C85;
+  --rule:#29332D; --rule-2:#1F2723;
+  --accent:#4FB49B; --accent-soft:#17312A; --accent-ink:#8FD9C6;
+  --mark:#D9A650; --mark-soft:rgba(217,166,80,.38);
+  --bad:#E88A8A; --bad-soft:#36211F;
+  --sh-1:0 1px 2px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.3);
+  --sh-2:0 12px 40px rgba(0,0,0,.55);
+  --ring:0 0 0 3px rgba(79,180,155,.28);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Source Serif 4","Iowan Old Style",Georgia,serif;font-size:16px;line-height:1.6;
+  -webkit-font-smoothing:antialiased}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
+.btn{padding:6px 12px;border-radius:var(--r-sm);border:1px solid var(--accent);background:transparent;
+  color:var(--accent);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;
+  font-family:inherit;font-size:.85rem;white-space:nowrap}
+.btn:hover{background:var(--accent);color:var(--paper)}
+.btn.quiet{border-color:var(--rule);color:var(--mute)}
+.btn.quiet:hover{border-color:var(--accent);color:var(--accent);background:transparent}
+.btn.tiny{padding:4px 10px;font-size:.8rem}
+.btn.on{background:var(--accent);color:var(--paper)}
+
+/* The bar holds the ONLY <audio> on the page. It is position:fixed and its
+   subtree is never rebuilt -- pages below may come and go (lazy render +
+   eviction) without ever touching the player. This is the library page's
+   front-end invariant, transplanted. */
+#bar{position:fixed;inset:0 0 auto 0;z-index:20;display:flex;align-items:center;gap:12px;
+  padding:10px 16px;background:var(--raise);border-bottom:1px solid var(--rule);
+  box-shadow:var(--sh-1)}
+#rtitle{font-family:"Zilla Slab",Rockwell,Georgia,serif;font-weight:600;font-size:1.05rem;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:0 1 auto}
+#player{flex:1 1 auto;min-width:120px;height:36px}
+#notice{margin:76px auto 0;max-width:820px;padding:12px 18px;border:1px solid var(--rule);
+  border-radius:var(--r-md);background:var(--raise);color:var(--ink-2)}
+#notice a{color:var(--accent)}
+#notice.err{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+
+#pages{padding:86px 12px 60vh}
+.pg{position:relative;margin:0 auto 18px;background:#fff;box-shadow:var(--sh-1);
+  border-radius:2px;cursor:pointer}
+.pg canvas{display:block;border-radius:2px}
+.pg .ovl{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:2px}
+.pg.ph{display:flex;align-items:center;justify-content:center;color:var(--mute);
+  font-size:.8rem;background:var(--raise);box-shadow:none;border:1px dashed var(--rule)}
+.hl{position:absolute;background:var(--mark-soft);mix-blend-mode:multiply;border-radius:2px;
+  transition:opacity .15s}
+.hl-page{position:absolute;background:var(--mark-soft);mix-blend-mode:multiply;
+  outline:2px solid var(--mark);outline-offset:-2px;border-radius:3px;opacity:.5}
+@media (prefers-reduced-motion:reduce){.hl{transition:none}}
+</style>
+</head>
+<body>
+<header id="bar">
+  <a class="btn quiet tiny" href="/" title="Back to the library">&lsaquo; library</a>
+  <span id="rtitle">loading&hellip;</span>
+  <audio id="player" controls preload="auto"></audio>
+  <button class="btn tiny on" id="followbtn" type="button" aria-pressed="true"
+          title="Keep the spoken passage in view; scrolling by hand pauses it for 8 s">follow</button>
+  <button class="btn quiet tiny" id="themebtn" type="button" aria-label="Toggle colour theme"></button>
+</header>
+<div id="notice" hidden></div>
+<main id="pages" aria-label="Document pages"></main>
+
+<script>
+'use strict';
+/* Theme first, before anything paints. */
+function osDark(){ try{ return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches); }catch(e){ return false; } }
+function themeNow(){ return document.documentElement.getAttribute('data-theme')||(osDark()?'dark':'light'); }
+function themePaint(){ const b=document.getElementById('themebtn'); b.textContent=themeNow()==='dark'?'\u263E':'\u2600'; }
+try{ const t=localStorage.getItem('pa:theme');
+  if(t==='light'||t==='dark') document.documentElement.setAttribute('data-theme',t); }catch(e){}
+themePaint();
+document.getElementById('themebtn').addEventListener('click',()=>{
+  const next=themeNow()==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  try{localStorage.setItem('pa:theme',next);}catch(e){}
+  themePaint();
+});
+
+(async function main(){
+const $=s=>document.querySelector(s);
+const pid=decodeURIComponent(location.pathname.replace(/\/+$/,'').split('/').pop());
+const pagesEl=$('#pages'), audio=$('#player'), notice=$('#notice');
+function say(msg,isErr){ notice.innerHTML=msg; notice.hidden=false;
+  notice.classList.toggle('err',!!isErr); }
+function die(msg){ say(msg,true); $('#rtitle').textContent='unavailable'; audio.hidden=true; }
+
+/* ---------- load: alignment + library metadata + pdf.js itself ---------- */
+let AL, doc, pdfjs;
+try{
+  const [alResp, libResp, mod] = await Promise.all([
+    fetch('/api/papers/'+encodeURIComponent(pid)+'/alignment'),
+    fetch('/api/library'),
+    import('/static/vendor/pdfjs/pdf.min.mjs'),
+  ]);
+  if(!alResp.ok){
+    const e=await alResp.json().catch(()=>({detail:'alignment unavailable'}));
+    return die('Cannot build the read-along view: '+(e.detail||alResp.status)+
+               '. <a href="/">Back to the library</a>.');
+  }
+  AL=await alResp.json();
+  pdfjs=mod;
+  pdfjs.GlobalWorkerOptions.workerSrc='/static/vendor/pdfjs/pdf.worker.min.mjs';
+  const lib=libResp.ok?await libResp.json():{items:[]};
+  const it=(lib.items||[]).find(x=>x.id===pid);
+  $('#rtitle').textContent=it?it.title:pid;
+  document.title=(it?it.title:pid)+' \u2014 read along';
+  if(it&&it.audio&&it.audio.present&&it.audio.url) audio.src=it.audio.url;
+  else audio.hidden=true;
+  doc=await pdfjs.getDocument('/pdf/'+encodeURIComponent(pid)+'.pdf').promise;
+}catch(e){
+  return die('Failed to load the document: '+(e&&e.message?e.message:e)+
+             '. <a href="/">Back to the library</a>.');
+}
+
+const chunks=AL.chunks||[];
+const timed=chunks.filter(c=>c.t_start!=null);      // narrated prefix, in order
+if(!timed.length)
+  say('This document is not narrated yet, so there is nothing to highlight. '+
+      'The pages below still work; render it from the <a href="/">library</a> first.');
+
+/* ---------- page geometry ---------- */
+const NPAGES=doc.numPages;
+const dims=new Array(NPAGES);                        // {w,h} in PDF points, scale 1
+try{
+  for(let i=1;i<=NPAGES;i++){
+    const p=await doc.getPage(i);
+    const v=p.getViewport({scale:1});
+    dims[i-1]={w:v.width,h:v.height};
+  }
+}catch(e){ /* a page that will not parse gets its neighbour's size on render */ }
+
+let scale=1, colW=0;
+function columnWidth(){ return Math.min(document.documentElement.clientWidth-24, 1100); }
+
+/* ---------- placeholders + lazy rendering ---------- */
+const pgEls=[];              // pno -> .pg element (placeholder or rendered)
+const rendered=new Map();    // pno -> {canvas, ovl, renderTask}
+const pageMap=new Map();     // pno -> [{ci, rects:[raw PDF rects], pageOnly}]
+for(let ci=0;ci<chunks.length;ci++){
+  const c=chunks[ci];
+  if(c.page_only!=null){
+    const arr=pageMap.get(c.page_only)||[];
+    arr.push({ci,rects:null,pageOnly:true}); pageMap.set(c.page_only,arr);
+  }
+  for(const r of (c.rects||[])){
+    const arr=pageMap.get(r.page)||[];
+    arr.push({ci,rects:[r],pageOnly:false}); pageMap.set(r.page,arr);
+  }
+}
+
+function layoutPlaceholders(){
+  colW=columnWidth();
+  pagesEl.textContent=''; pgEls.length=0; rendered.clear();
+  for(let p=0;p<NPAGES;p++){
+    const d=dims[p]||dims[p-1]||{w:612,h:792};
+    const el=document.createElement('div');
+    el.className='pg ph'; el.dataset.pno=p;
+    el.style.width=colW+'px';
+    el.style.height=Math.round(colW*d.h/d.w)+'px';
+    el.textContent='page '+(p+1);
+    pagesEl.appendChild(el); pgEls.push(el);
+    io.observe(el);
+  }
+}
+
+async function renderPage(pno){
+  if(rendered.has(pno)) return;
+  const el=pgEls[pno]; if(!el) return;
+  rendered.set(pno,{canvas:null,ovl:null});           // reserve: no double render
+  try{
+    const page=await doc.getPage(pno+1);
+    const d=dims[pno]||(dims[pno]=(()=>{const v=page.getViewport({scale:1});
+                                        return {w:v.width,h:v.height};})());
+    const vw=colW, vh=Math.round(colW*d.h/d.w);
+    const viewport=page.getViewport({scale:vw/d.w});
+    const dpr=window.devicePixelRatio||1;
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.floor(viewport.width*dpr);
+    canvas.height=Math.floor(viewport.height*dpr);
+    canvas.style.width=Math.floor(viewport.width)+'px';
+    canvas.style.height=Math.floor(viewport.height)+'px';
+    const ctx=canvas.getContext('2d');
+    const ovl=document.createElement('div'); ovl.className='ovl';
+    el.textContent=''; el.classList.remove('ph');
+    el.style.height=Math.floor(viewport.height)+'px';
+    el.appendChild(canvas); el.appendChild(ovl);
+    await page.render({canvasContext:ctx,viewport,
+      transform:dpr!==1?[dpr,0,0,dpr,0,0]:null}).promise;
+    rendered.set(pno,{canvas,ovl});
+    page.cleanup();
+    if(cur>=0) paintChunk(pno,ovl);                   // current chunk may live here
+  }catch(e){
+    el.textContent='page '+(pno+1)+' failed to render';
+    rendered.delete(pno);
+  }
+}
+
+function evictPage(pno){
+  const r=rendered.get(pno); if(!r||!r.canvas) return;
+  const el=pgEls[pno];
+  el.textContent=''; el.classList.add('ph'); el.textContent='page '+(pno+1);
+  const d=dims[pno]; if(d) el.style.height=Math.round(colW*d.h/d.w)+'px';
+  rendered.delete(pno);
+}
+
+const io=new IntersectionObserver(entries=>{
+  for(const en of entries){
+    const pno=+en.target.dataset.pno;
+    if(en.isIntersecting) renderPage(pno);
+    else evictPage(pno);
+  }
+},{rootMargin:'140% 0px 140% 0px'});
+
+/* ---------- highlight sync ---------- */
+let cur=-1;                    // current chunk index (into chunks), -1 = none
+let follow=true, lastUserScroll=0, followT=null;
+const SCROLL_FORGIVE_MS=8000;
+
+function chunkAt(t){
+  /* last timed chunk whose t_start <= t; the 0.18 s build gap between chunks
+     keeps the previous chunk lit until the next one starts */
+  let lo=0, hi=timed.length-1, ans=-1;
+  while(lo<=hi){
+    const mid=(lo+hi)>>1;
+    if(timed[mid].t_start<=t){ ans=mid; lo=mid+1; } else hi=mid-1;
+  }
+  return ans<0?-1:timed[ans].i;
+}
+
+function paintChunk(pno,ovl){
+  /* add this page's share of the current chunk's highlight (called on chunk
+     change for rendered pages and on render for the current page) */
+  const c=chunks[cur]; if(!c) return;
+  const d=dims[pno]; if(!d) return;
+  const sc=colW/d.w;
+  if(c.page_only===pno){
+    const el=document.createElement('div');
+    el.className='hl-page'; el.dataset.ci=cur;
+    el.style.cssText='left:6px;top:6px;right:6px;bottom:6px;position:absolute';
+    ovl.appendChild(el);
+  }
+  for(const r of (c.rects||[])){
+    if(r.page!==pno) continue;
+    const el=document.createElement('div');
+    el.className='hl'; el.dataset.ci=cur;
+    /* PyMuPDF coordinates are already top-left origin, y down: no flip */
+    el.style.left=(r.x0*sc-2)+'px'; el.style.top=(r.y0*sc-1.5)+'px';
+    el.style.width=((r.x1-r.x0)*sc+4)+'px'; el.style.height=((r.y1-r.y0)*sc+3)+'px';
+    ovl.appendChild(el);
+  }
+}
+
+function clearHighlights(){
+  for(const {ovl} of rendered.values()){
+    if(!ovl) continue;
+    for(const n of [...ovl.children]) n.remove();
+  }
+}
+
+function followTo(c){
+  const pno=c.page_only!=null?c.page_only:(c.rects&&c.rects.length?c.rects[0].page:null);
+  if(pno==null||!pgEls[pno]) return;
+  const el=pgEls[pno], d=dims[pno], sc=d?colW/d.w:1;
+  let y=el.offsetTop;
+  if(c.rects&&c.rects.length){
+    const r=c.rects.find(r=>r.page===pno)||c.rects[0];
+    y+=r.y0*sc;
+  }
+  const target=y-window.innerHeight*0.35;
+  const first=c.rects&&c.rects.length?c.rects[0]:null;
+  const firstY=first?el.offsetTop+first.y0*sc:el.offsetTop;
+  const vh=window.innerHeight;
+  /* already comfortably visible? then stay put */
+  if(firstY>window.scrollY+vh*0.2 && firstY<window.scrollY+vh*0.75) return;
+  const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({top:Math.max(0,target),behavior:reduce?'auto':'smooth'});
+}
+
+function onTime(){
+  if(!timed.length) return;
+  const ci=chunkAt(audio.currentTime);
+  if(ci===cur) return;
+  cur=ci; clearHighlights();
+  if(cur<0) return;
+  for(const [pno,{ovl}] of rendered) if(ovl) paintChunk(pno,ovl);
+  if(follow && performance.now()-lastUserScroll>SCROLL_FORGIVE_MS) followTo(chunks[cur]);
+}
+audio.addEventListener('timeupdate',onTime);
+audio.addEventListener('seeked',onTime);
+
+/* manual scrolling suspends follow for a few seconds; fighting the user's
+   scroll is the fastest way for a read-along UI to be hated */
+for(const ev of ['wheel','touchmove']) window.addEventListener(ev,()=>{
+  lastUserScroll=performance.now();
+},{passive:true});
+window.addEventListener('keydown',e=>{
+  if([' ','PageDown','PageUp','ArrowDown','ArrowUp','Home','End'].includes(e.key))
+    lastUserScroll=performance.now();
+});
+
+const fbtn=$('#followbtn');
+fbtn.addEventListener('click',()=>{
+  follow=!follow;
+  fbtn.classList.toggle('on',follow);
+  fbtn.setAttribute('aria-pressed',String(follow));
+  if(follow&&cur>=0) followTo(chunks[cur]);
+});
+
+/* ---------- click-to-seek ---------- */
+pagesEl.addEventListener('click',e=>{
+  const pg=e.target.closest('.pg'); if(!pg||!rendered.has(+pg.dataset.pno)) return;
+  const pno=+pg.dataset.pno, d=dims[pno]; if(!d) return;
+  const box=pg.getBoundingClientRect(), sc=colW/d.w;
+  const px=(e.clientX-box.left)/sc, py=(e.clientY-box.top)/sc;
+  const cands=pageMap.get(pno)||[];
+  let hit=null, pageHit=null;
+  for(const cand of cands){
+    if(cand.pageOnly){ if(pageHit==null) pageHit=cand.ci; continue; }
+    for(const r of cand.rects){
+      if(px>=r.x0-1&&px<=r.x1+1&&py>=r.y0-1&&py<=r.y1+1){ hit=cand.ci; break; }
+    }
+    if(hit!=null) break;
+  }
+  const ci=hit!=null?hit:pageHit;
+  if(ci==null) return;
+  const c=chunks[ci];
+  if(c.t_start==null) return;
+  audio.currentTime=c.t_start+0.02;
+  if(audio.paused) audio.play().catch(()=>{});
+});
+
+/* ---------- resize: re-lay out and let the observer re-render ---------- */
+let rszT=null;
+window.addEventListener('resize',()=>{
+  clearTimeout(rszT);
+  rszT=setTimeout(()=>{ layoutPlaceholders(); cur=-1; onTime(); },250);
+});
+
+layoutPlaceholders();
+})();
+</script>
+</body>
+</html>
