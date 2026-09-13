@@ -69,7 +69,8 @@ body{margin:0;background:var(--paper);color:var(--ink);
 #notice a{color:var(--accent)}
 #notice.err{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
 
-#pages{padding:86px 12px 60vh}
+#wrap{display:flex;justify-content:center;gap:22px;align-items:flex-start;padding:86px 12px 60vh}
+#pages{flex:0 1 auto;min-width:0}
 .pg{position:relative;margin:0 auto 18px;background:#fff;box-shadow:var(--sh-1);
   border-radius:2px;cursor:pointer}
 .pg canvas{display:block;border-radius:2px}
@@ -81,6 +82,42 @@ body{margin:0;background:var(--paper);color:var(--ink);
 .hl-page{position:absolute;background:var(--mark-soft);mix-blend-mode:multiply;
   outline:2px solid var(--mark);outline-offset:-2px;border-radius:3px;opacity:.5}
 @media (prefers-reduced-motion:reduce){.hl{transition:none}}
+
+/* ---------- margin notes ---------- */
+#gutter{flex:0 0 310px;position:relative;align-self:stretch}
+#ghead{position:sticky;top:64px;z-index:5;font-family:"Zilla Slab",Rockwell,Georgia,serif;
+  font-weight:600;color:var(--ink-2);background:var(--paper);padding:2px 0;font-size:1.05rem}
+#gcount{color:var(--mute);font-size:.8rem}
+.g-block{position:absolute;left:0;right:0}
+.g-page-label{font-size:.72rem;color:var(--mute);text-transform:uppercase;
+  letter-spacing:.08em;margin:0 0 6px}
+.note{background:var(--raise);border:1px solid var(--rule);border-radius:var(--r-md);
+  padding:10px 12px;margin:0 0 10px;box-shadow:var(--sh-1);font-size:.88rem}
+.n-quote,.e-quote{color:var(--mute);font-size:.78rem;border-left:3px solid var(--rule);
+  padding-left:8px;margin:0 0 6px}
+.n-quote{cursor:pointer}
+.n-quote:hover{border-color:var(--accent);color:var(--accent-ink)}
+.n-body{white-space:pre-wrap;word-break:break-word}
+.n-meta{display:flex;gap:12px;align-items:center;margin-top:8px;font-size:.72rem;color:var(--mute)}
+.n-meta button{background:none;border:none;color:var(--accent);cursor:pointer;font:inherit;
+  font-size:.78rem;padding:0}
+.n-meta button:hover{text-decoration:underline}
+.n-meta button.danger{color:var(--bad)}
+.editor{background:var(--raise);border:1px solid var(--accent);border-radius:var(--r-md);
+  padding:10px 12px;margin:0 0 10px;box-shadow:var(--sh-2);font-size:.88rem}
+.editor textarea{width:100%;resize:vertical;min-height:72px;font:inherit;font-size:.9rem;
+  color:var(--ink);background:var(--paper);border:1px solid var(--rule);
+  border-radius:var(--r-sm);padding:8px}
+.editor textarea:focus{outline:none;border-color:var(--accent);box-shadow:var(--ring)}
+.e-actions{display:flex;gap:8px;margin-top:8px;justify-content:flex-end}
+.sel{position:absolute;outline:2px solid var(--accent);outline-offset:1px;border-radius:2px}
+#notebtn{position:fixed;right:18px;bottom:18px;z-index:30;box-shadow:var(--sh-2)}
+#notebtn[hidden]{display:none}
+@media (max-width:980px){
+  #wrap{flex-direction:column;align-items:center}
+  #gutter{flex:1 1 auto;width:min(100%,680px);align-self:auto;min-height:0}
+  .g-block{position:static;margin-bottom:14px}
+}
 </style>
 </head>
 <body>
@@ -93,7 +130,14 @@ body{margin:0;background:var(--paper);color:var(--ink);
   <button class="btn quiet tiny" id="themebtn" type="button" aria-label="Toggle colour theme"></button>
 </header>
 <div id="notice" hidden></div>
+<div id="wrap">
 <main id="pages" aria-label="Document pages"></main>
+<aside id="gutter" aria-label="Margin notes">
+  <div id="ghead">notes <span id="gcount" class="mono"></span></div>
+</aside>
+</div>
+<button id="notebtn" class="btn on" hidden type="button"
+        title="Pin a note to the passage you just clicked">&#9998; note on this passage</button>
 
 <script>
 'use strict';
@@ -196,6 +240,7 @@ function layoutPlaceholders(){
     pagesEl.appendChild(el); pgEls.push(el);
     io.observe(el);
   }
+  positionGutter();
 }
 
 async function renderPage(pno){
@@ -224,6 +269,7 @@ async function renderPage(pno){
     rendered.set(pno,{canvas,ovl});
     page.cleanup();
     if(cur>=0) paintChunk(pno,ovl);                   // current chunk may live here
+    positionGutter();                                 // exact page height may shift blocks
   }catch(e){
     el.textContent='page '+(pno+1)+' failed to render';
     rendered.delete(pno);
@@ -286,9 +332,12 @@ function paintChunk(pno,ovl){
 }
 
 function clearHighlights(){
+  /* only the time-synced highlight; the click selection (.sel) survives, so
+     a passage stays marked while the narration moves on */
   for(const {ovl} of rendered.values()){
     if(!ovl) continue;
-    for(const n of [...ovl.children]) n.remove();
+    for(const n of [...ovl.children])
+      if(n.classList.contains('hl')||n.classList.contains('hl-page')) n.remove();
   }
 }
 
@@ -358,20 +407,231 @@ pagesEl.addEventListener('click',e=>{
   }
   const ci=hit!=null?hit:pageHit;
   if(ci==null) return;
+  selectChunk(ci);
   const c=chunks[ci];
   if(c.t_start==null) return;
   audio.currentTime=c.t_start+0.02;
   if(audio.paused) audio.play().catch(()=>{});
 });
 
+/* ---------- margin notes ---------- */
+const gutter=$('#gutter'), gcount=$('#gcount'), notebtn=$('#notebtn');
+const chunkPage=chunks.map(c=>c.page_only!=null?c.page_only
+                          :(c.rects&&c.rects.length?c.rects[0].page:null));
+let notes=[], selChunk=-1, selEls=[], textCache=null;
+
+async function api(method,url,body){
+  const r=await fetch(url,{method,
+    headers:body?{'Content-Type':'application/json'}:undefined,
+    body:body?JSON.stringify(body):undefined});
+  if(!r.ok){
+    const e=await r.json().catch(()=>({detail:String(r.status)}));
+    throw new Error(e.detail||r.status);
+  }
+  return r.json();
+}
+function fmtTime(epoch){
+  const d=new Date(epoch*1000);
+  return d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+
+         d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
+}
+async function chunkText(ci){
+  if(textCache==null){
+    try{ textCache=await (await fetch('/text/'+encodeURIComponent(pid)+'.txt')).text(); }
+    catch(e){ textCache=''; }
+  }
+  const c=chunks[ci];
+  return c?textCache.slice(c.char_start,c.char_end).trim():'';
+}
+
+function clearSelection(){
+  for(const e of selEls) e.remove();
+  selEls=[]; selChunk=-1; notebtn.hidden=true;
+}
+function selectChunk(ci){
+  for(const e of selEls) e.remove();
+  selEls=[]; selChunk=ci;
+  const c=chunks[ci];
+  if(c){
+    for(const [pno,{ovl}] of rendered){
+      if(!ovl) continue;
+      const d=dims[pno]; if(!d) continue;
+      const sc=colW/d.w;
+      for(const r of (c.rects||[])){
+        if(r.page!==pno) continue;
+        const el=document.createElement('div');
+        el.className='sel';
+        el.style.left=(r.x0*sc-2)+'px'; el.style.top=(r.y0*sc-1.5)+'px';
+        el.style.width=((r.x1-r.x0)*sc+4)+'px'; el.style.height=((r.y1-r.y0)*sc+3)+'px';
+        ovl.appendChild(el); selEls.push(el);
+      }
+    }
+  }
+  notebtn.hidden=false;
+}
+
+function positionGutter(){
+  if(!gutter) return;
+  let floor=0;
+  const blocks=[...gutter.querySelectorAll('.g-block')]
+    .sort((a,b)=>(+a.dataset.pno)-(+b.dataset.pno));
+  for(const el of blocks){
+    const pno=+el.dataset.pno, pg=pgEls[pno];
+    if(!pg) continue;
+    const d=dims[pno], sc=d?colW/d.w:1;
+    /* align with the highest anchor rect on the page, never above the page
+       top, and never over the previous block -- dense pages cascade down */
+    let top=pg.offsetTop+Math.max(0,(el._anchorY||0)*sc-8);
+    top=Math.max(top,floor);
+    el.style.top=top+'px';
+    floor=top+el.offsetHeight+10;
+  }
+}
+
+function noteCard(note){
+  const el=document.createElement('div'); el.className='note'; el.dataset.nid=note.id;
+  const q=document.createElement('div'); q.className='n-quote';
+  q.textContent='\u201C'+note.quote.slice(0,90)+(note.quote.length>90?'\u2026':'')+'\u201D';
+  q.title='Jump to this passage';
+  q.addEventListener('click',()=>{
+    const c=chunks[note.chunk_idx];
+    if(c&&c.t_start!=null){
+      audio.currentTime=c.t_start+0.02;
+      if(audio.paused) audio.play().catch(()=>{});
+    }
+    const pno=chunkPage[note.chunk_idx];
+    if(pno!=null&&pgEls[pno]){
+      const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      pgEls[pno].scrollIntoView({block:'center',behavior:reduce?'auto':'smooth'});
+    }
+  });
+  const b=document.createElement('div'); b.className='n-body'; b.textContent=note.body;
+  const meta=document.createElement('div'); meta.className='n-meta';
+  const t=document.createElement('span'); t.textContent=fmtTime(note.updated);
+  const ed=document.createElement('button'); ed.type='button'; ed.textContent='edit';
+  ed.addEventListener('click',()=>openEditor(note.chunk_idx,note));
+  const del=document.createElement('button'); del.type='button';
+  del.textContent='delete'; del.className='danger';
+  del.addEventListener('click',async ()=>{
+    if(del.dataset.arm){
+      try{ await api('DELETE','/api/notes/'+note.id);
+        notes=notes.filter(x=>x.id!==note.id); renderGutter(); }
+      catch(e){ del.textContent='failed'; }
+    }else{
+      del.dataset.arm='1'; del.textContent='sure?';
+      setTimeout(()=>{ if(!del.dataset.arm) return;
+        delete del.dataset.arm; del.textContent='delete'; },3000);
+    }
+  });
+  meta.append(t,ed,del);
+  el.append(q,b,meta);
+  return el;
+}
+
+function renderGutter(){
+  closeEditor();
+  for(const el of [...gutter.querySelectorAll('.g-block')]) el.remove();
+  const byPage=new Map();
+  let n=0;
+  for(const note of notes){
+    const p=chunkPage[note.chunk_idx];
+    if(p==null) continue;
+    const arr=byPage.get(p)||[]; arr.push(note); byPage.set(p,arr); n++;
+  }
+  for(const [pno,list] of [...byPage.entries()].sort((a,b)=>a[0]-b[0])){
+    const block=document.createElement('div');
+    block.className='g-block'; block.dataset.pno=pno;
+    /* highest anchor y (PDF points) among this block's notes, for alignment */
+    block._anchorY=Math.min(...list.map(note=>{
+      const c=chunks[note.chunk_idx];
+      if(!c||c.page_only!=null) return 0;
+      const ys=(c.rects||[]).filter(r=>r.page===pno).map(r=>r.y0);
+      return ys.length?Math.min(...ys):0;
+    }));
+    const lab=document.createElement('div');
+    lab.className='g-page-label'; lab.textContent='page '+(pno+1);
+    block.appendChild(lab);
+    for(const note of list) block.appendChild(noteCard(note));
+    gutter.appendChild(block);
+  }
+  gcount.textContent=n?('\u00b7 '+n):'';
+  positionGutter();
+}
+
+let editorEl=null;
+function closeEditor(){ if(editorEl){ editorEl.remove(); editorEl=null; } }
+async function openEditor(ci,note){
+  closeEditor();
+  const c=chunks[ci]; if(!c) return;
+  const quote=note?note.quote:(await chunkText(ci)).slice(0,120);
+  const el=document.createElement('div'); el.className='editor';
+  const q=document.createElement('div'); q.className='e-quote';
+  q.textContent='\u201C'+quote.slice(0,90)+(quote.length>90?'\u2026':'')+'\u201D';
+  const ta=document.createElement('textarea');
+  ta.placeholder='Your note\u2026';
+  if(note) ta.value=note.body;
+  const acts=document.createElement('div'); acts.className='e-actions';
+  const cancel=document.createElement('button');
+  cancel.type='button'; cancel.className='btn quiet tiny'; cancel.textContent='cancel';
+  cancel.addEventListener('click',closeEditor);
+  const save=document.createElement('button');
+  save.type='button'; save.className='btn tiny on';
+  save.textContent=note?'save':'add note';
+  async function doSave(){
+    const body=ta.value.trim(); if(!body) return;
+    save.disabled=true;
+    try{
+      if(note){
+        const u=await api('PATCH','/api/notes/'+note.id,{body});
+        Object.assign(note,u);
+      }else{
+        const created=await api('POST','/api/papers/'+encodeURIComponent(pid)+'/notes',
+                                {chunk_idx:ci,char_off:0,body});
+        notes.push(created);
+      }
+      closeEditor(); renderGutter();
+    }catch(e){
+      save.disabled=false; save.textContent='failed \u2013 retry';
+    }
+  }
+  save.addEventListener('click',doSave);
+  ta.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); doSave(); }
+    if(e.key==='Escape'){ e.preventDefault(); closeEditor(); }
+  });
+  acts.append(cancel,save);
+  el.append(q,ta,acts);
+  /* the editor lives in the anchor page's gutter block, created if needed */
+  const pno=Math.min(chunkPage[ci]!=null?chunkPage[ci]:0, NPAGES-1);
+  let block=gutter.querySelector('.g-block[data-pno="'+pno+'"]');
+  if(!block){
+    block=document.createElement('div');
+    block.className='g-block'; block.dataset.pno=pno;
+    const cr=(c.rects||[]).filter(r=>r.page===pno).map(r=>r.y0);
+    block._anchorY=cr.length?Math.min(...cr):0;
+    const lab=document.createElement('div');
+    lab.className='g-page-label'; lab.textContent='page '+(pno+1);
+    block.appendChild(lab); gutter.appendChild(block);
+    positionGutter();
+  }
+  block.appendChild(el); editorEl=el;
+  const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.scrollIntoView({block:'nearest',behavior:reduce?'auto':'smooth'});
+  ta.focus();
+}
+notebtn.addEventListener('click',()=>{ if(selChunk>=0) openEditor(selChunk,null); });
+
 /* ---------- resize: re-lay out and let the observer re-render ---------- */
 let rszT=null;
 window.addEventListener('resize',()=>{
   clearTimeout(rszT);
-  rszT=setTimeout(()=>{ layoutPlaceholders(); cur=-1; onTime(); },250);
+  rszT=setTimeout(()=>{ layoutPlaceholders(); cur=-1; onTime(); positionGutter(); },250);
 });
 
+try{ notes=(await api('GET','/api/papers/'+encodeURIComponent(pid)+'/notes')).notes||[]; }
+catch(e){ notes=[]; }
 layoutPlaceholders();
+renderGutter();
 })();
 </script>
 </body>

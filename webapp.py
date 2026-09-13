@@ -503,7 +503,45 @@ def _chunk_quote(pid: str, chunk_idx: int) -> str:
 @app.get("/api/papers/{pid}/notes")
 def paper_notes(pid: str):
     _paper_or_404(pid)
-    return {"notes": ws.list_notes(pid)}
+    return {"notes": _reanchor_if_needed(pid)}
+
+
+def _reanchor_if_needed(pid: str):
+    """Self-healing note anchors. Notes pin to a narration chunk INDEX, but a
+    re-extraction shifts every boundary after it -- so each note also carries
+    the first ~120 chars of its chunk (`quote`). On read, any note whose quote
+    no longer matches its chunk is fuzzy-located in the current chunk stream
+    and repaired (ws.reanchor_notes). A note that matches nowhere keeps its
+    old index rather than being destroyed; it may simply belong to a passage
+    the new extraction dropped."""
+    import difflib
+    import synth                              # lazy: keeps numpy out of the hot path
+    notes = ws.list_notes(pid)
+    txt = TEXT / f"{pid}.txt"
+    if not notes or not txt.exists():
+        return notes
+    chunks = [c for c, _, _ in synth.chunk_spans(txt.read_text())]
+    norm = lambda s: re.sub(r"\s+", " ", s).strip()
+    fixes = {}
+    for n in notes:
+        q = norm(n["quote"])
+        if not q:
+            continue
+        ci = n["chunk_idx"]
+        here = norm(chunks[ci]) if 0 <= ci < len(chunks) else ""
+        if here[:len(q)].startswith(q[:60]):        # still home
+            continue
+        best_i, best_r = None, 0.0
+        for i, ch in enumerate(chunks):
+            r = difflib.SequenceMatcher(a=q, b=norm(ch)[:len(q) + 20]).ratio()
+            if r > best_r:
+                best_i, best_r = i, r
+        if best_r >= 0.6 and best_i != ci:
+            fixes[ci] = best_i
+    if fixes:
+        ws.reanchor_notes(pid, fixes)
+        notes = ws.list_notes(pid)
+    return notes
 
 
 @app.post("/api/papers/{pid}/notes")
