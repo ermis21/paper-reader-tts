@@ -255,6 +255,44 @@ def t_no_audio_at_all():
               all(c["rects"] for c in al["chunks"]))
 
 
+# ---------------------------------------------------------------- v2 segments
+def t_v2_segments():
+    with tempfile.TemporaryDirectory() as td:
+        tmp = pathlib.Path(td)
+        s1 = "First sentence sits on line one."
+        s2 = "Second sentence sits on line two."
+        al = build_in(tmp, "v2", [[s1, s2]], s1 + " " + s2)
+        c = al["chunks"][0]
+        check("v2 version stamp", al["version"] == 2, str(al["version"]))
+        check("two sentences -> two segments", len(c["segs"]) == 2, str(len(c["segs"])))
+        check("segment fractions ordered, spanning [0,1]",
+              c["segs"][0]["f0"] <= 0.01 and abs(c["segs"][1]["f1"] - 1.0) < 0.02 and
+              c["segs"][0]["f1"] <= c["segs"][1]["f0"] + 0.02,
+              str([(s["f0"], s["f1"]) for s in c["segs"]]))
+        check("each segment gets its own per-line rect",
+              all(len(s["rects"]) == 1 for s in c["segs"]),
+              str([len(s["rects"]) for s in c["segs"]]))
+        check("segment rects are per-line, not merged (no vertical overlap)",
+              c["segs"][0]["rects"][0]["y1"] <= c["segs"][1]["rects"][0]["y0"])
+
+
+def t_citation_line_gets_no_rect():
+    with tempfile.TemporaryDirectory() as td:
+        tmp = pathlib.Path(td)
+        # line 1: fully narration. line 2: 9 PDF words, narration keeps 3 ->
+        # below COVER_MIN. The citation segment must inherit its sibling's page.
+        al = build_in(tmp, "v2b",
+                      [["An honest opening sentence.",
+                        "Real words (Smith 2019; Jones 2020; Lee 2021) here."]],
+                      "An honest opening sentence. Real words here.")
+        c = al["chunks"][0]
+        check("mostly-citation line earns no rect",
+              len(c["segs"][1]["rects"]) == 0 and len(c["segs"][0]["rects"]) == 1,
+              str([len(s["rects"]) for s in c["segs"]]))
+        check("and the segment falls back to the sibling's page",
+              c["segs"][1]["page_only"] == 0, str(c["segs"][1]["page_only"]))
+
+
 # ---------------------------------------------------------------- corpus golden
 def t_corpus_golden():
     pid = "01-cook-how-complex-systems-fail"
@@ -279,6 +317,8 @@ if __name__ == "__main__":
     t_align_repeated_phrase()
     t_align_page_break_mid_chunk()
     t_align_unalignable_falls_back()
+    t_v2_segments()
+    t_citation_line_gets_no_rect()
     t_timeline()
     t_no_audio_at_all()
     t_corpus_golden()

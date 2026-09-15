@@ -46,8 +46,9 @@ import synth
 ROOT = pathlib.Path(__file__).resolve().parent
 PDFS, TEXT, CACHE = ROOT/"pdfs", ROOT/"text", ROOT/"cache"
 SR = 24000
-VERSION = 1
+VERSION = 2
 CONF_PAGE_ONLY = 0.6     # below this the front end falls back to page-level highlight
+COVER_MIN = 0.35         # a PDF line needs >=35% matched words to earn a rect at all
 
 
 def skeleton(tok):
@@ -90,15 +91,27 @@ def align(hay, needle):
     return n2h
 
 
-def chunk_rects(chunk, tokens, n2h, hay):
-    """Per-line highlight rects for one chunk, merged within (page, block).
+def line_word_counts(hay):
+    """Words per (page, block, line) -- the coverage denominators."""
+    cnt = {}
+    for h in hay:
+        key = (h[1], h[6], h[7])
+        cnt[key] = cnt.get(key, 0) + 1
+    return cnt
 
-    Line-level unions read as clean highlighter strokes; merging adjacent
-    matched lines of the same block keeps column rects separate on two-column
-    pages (a whole-page union would paint both columns).
+
+def span_rects(lo, hi, tokens, n2h, hay, line_words):
+    """Per-line highlight rects for the narration tokens in text[lo:hi].
+
+    v2: one rect per (page, block, line) that is mostly narration. A line where
+    fewer than COVER_MIN of the words matched -- typically a line that is
+    mostly a stripped citation -- gets NO rect, rather than a highlight painted
+    over text that is never read. Within a kept line the rect is the union of
+    the MATCHED words' boxes only, so a stripped parenthetical at the line's
+    end stays unhighlighted. No merging across lines: highlight blocks and
+    citation holes read exactly as they sound.
     """
-    lo, hi = chunk[1], chunk[2]
-    lines = {}                       # (page, block, line) -> [x0,y0,x1,y1]
+    lines = {}                       # (page, block, line) -> [x0,y0,x1,y1,n]
     matched = total = 0
     for i, (sk, ts, te) in enumerate(tokens):
         if not (lo <= ts < hi):
@@ -112,25 +125,43 @@ def chunk_rects(chunk, tokens, n2h, hay):
         key = (pno, bno, lno)
         r = lines.get(key)
         if r is None:
-            lines[key] = [x0, y0, x1, y1]
+            lines[key] = [x0, y0, x1, y1, 1]
         else:
             r[0] = min(r[0], x0); r[1] = min(r[1], y0)
             r[2] = max(r[2], x1); r[3] = max(r[3], y1)
-    # merge consecutive lines of the same block into one rect
-    merged = {}                      # (page, block) -> [x0,y0,x1,y1]
-    for (pno, bno, _), r in sorted(lines.items()):
-        m = merged.get((pno, bno))
-        if m is None:
-            merged[(pno, bno)] = list(r)
-        else:
-            m[0] = min(m[0], r[0]); m[1] = min(m[1], r[1])
-            m[2] = max(m[2], r[2]); m[3] = max(m[3], r[3])
-    rects = [{"page": pno,
-              "x0": round(r[0], 1), "y0": round(r[1], 1),
-              "x1": round(r[2], 1), "y1": round(r[3], 1)}
-             for (pno, _), r in sorted(merged.items())]
+            r[4] += 1
+    rects = []
+    for key, r in sorted(lines.items()):
+        if r[4] / line_words[key] < COVER_MIN:
+            continue
+        pno = key[0]
+        rects.append({"page": pno,
+                      "x0": round(r[0], 1), "y0": round(r[1], 1),
+                      "x1": round(r[2], 1), "y1": round(r[3], 1)})
     conf = matched / max(1, total)
     return rects, conf
+
+
+def sentence_spans(text, lo, hi):
+    """Absolute (start, end) char offsets of the sentences inside text[lo:hi].
+
+    Same split rule synth.chunk_spans uses, applied within one chunk. A chunk
+    cut mid-sentence by the pathological-length path simply yields a sentence
+    piece -- still a contiguous, speakable segment."""
+    body = text[lo:hi]
+    spans, start = [], 0
+    for m in synth.SENT_END.finditer(body):
+        s = body[start:m.start()]
+        if s.strip():
+            lead = len(s) - len(s.lstrip())
+            spans.append((lo + start + lead, lo + m.start()))
+        start = m.end()
+    s = body[start:]
+    if s.strip():
+        lead = len(s) - len(s.lstrip())
+        trail = len(s.rstrip())
+        spans.append((lo + start + lead, lo + start + trail))
+    return spans
 
 
 def chunk_durations(cd):
@@ -154,23 +185,32 @@ def build_alignment(pid):
     hay, npages = pdf_words(pdf_path)
     tokens = needle_tokens(text)
     n2h = align(hay, tokens)
+    line_words = line_word_counts(hay)
     spans = synth.chunk_spans(text)
     durs = chunk_durations(CACHE/pid)
     gap = buildmod.GAP
     chunks = []
     t = 0.0
     for i, sp in enumerate(spans):
-        rects, conf = chunk_rects(sp, tokens, n2h, hay)
+        rects, conf = span_rects(sp[1], sp[2], tokens, n2h, hay, line_words)
         dur = durs.get(i)
         if dur is not None:
             t_start, t_end = t, t + dur
             t = t_end + gap
         else:
             t_start = t_end = None
+        clen = max(1, sp[2] - sp[1])
+        segs = []
+        for cs, ce in sentence_spans(text, sp[1], sp[2]):
+            sr, sc_ = span_rects(cs, ce, tokens, n2h, hay, line_words)
+            segs.append({"cs": cs, "ce": ce,
+                         "f0": round((cs - sp[1]) / clen, 4),
+                         "f1": round((ce - sp[1]) / clen, 4),
+                         "rects": sr, "conf": round(sc_, 3), "page_only": None})
         chunks.append({"i": i, "char_start": sp[1], "char_end": sp[2],
                        "t_start": t_start, "t_end": t_end,
                        "rects": rects, "conf": round(conf, 3),
-                       "page_only": None})
+                       "page_only": None, "segs": segs})
     # page_only: where the reader falls back when a chunk can't be trusted at
     # rect level. Two cases: (a) conf below CONF_PAGE_ONLY -- the rects are too
     # noisy to paint, but their page is usually still right; (b) no rects at
@@ -192,6 +232,23 @@ def build_alignment(pid):
             nxt = c["rects"][0]["page"]
         elif c["page_only"] is None:
             c["page_only"] = nxt
+    # segments fall back the same way, nearest rect-bearing sibling first,
+    # then the chunk's own page_only
+    for c in chunks:
+        last = None
+        for s in c["segs"]:
+            if s["rects"]:
+                last = s["rects"][0]["page"]
+                if s["conf"] < CONF_PAGE_ONLY:
+                    s["page_only"] = last
+            else:
+                s["page_only"] = last
+        nxt = c["page_only"]
+        for s in reversed(c["segs"]):
+            if s["rects"]:
+                nxt = s["rects"][0]["page"]
+            elif s["page_only"] is None:
+                s["page_only"] = nxt
     return {
         "version": VERSION,
         "text_sha1": hashlib.sha1(text.encode()).hexdigest(),

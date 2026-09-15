@@ -214,17 +214,19 @@ function columnWidth(){ return Math.min(document.documentElement.clientWidth-24,
 /* ---------- placeholders + lazy rendering ---------- */
 const pgEls=[];              // pno -> .pg element (placeholder or rendered)
 const rendered=new Map();    // pno -> {canvas, ovl, renderTask}
-const pageMap=new Map();     // pno -> [{ci, rects:[raw PDF rects], pageOnly}]
+const pageMap=new Map();     // pno -> [{ci, si, rects:[raw PDF rects]|null, pageOnly}]
 for(let ci=0;ci<chunks.length;ci++){
   const c=chunks[ci];
-  if(c.page_only!=null){
-    const arr=pageMap.get(c.page_only)||[];
-    arr.push({ci,rects:null,pageOnly:true}); pageMap.set(c.page_only,arr);
-  }
-  for(const r of (c.rects||[])){
-    const arr=pageMap.get(r.page)||[];
-    arr.push({ci,rects:[r],pageOnly:false}); pageMap.set(r.page,arr);
-  }
+  (c.segs||[]).forEach((s,si)=>{
+    if(s.page_only!=null){
+      const arr=pageMap.get(s.page_only)||[];
+      arr.push({ci,si,rects:null,pageOnly:true}); pageMap.set(s.page_only,arr);
+    }
+    for(const r of (s.rects||[])){
+      const arr=pageMap.get(r.page)||[];
+      arr.push({ci,si,rects:[r],pageOnly:false}); pageMap.set(r.page,arr);
+    }
+  });
 }
 
 function layoutPlaceholders(){
@@ -268,7 +270,7 @@ async function renderPage(pno){
       transform:dpr!==1?[dpr,0,0,dpr,0,0]:null}).promise;
     rendered.set(pno,{canvas,ovl});
     page.cleanup();
-    if(cur>=0) paintChunk(pno,ovl);                   // current chunk may live here
+    if(cur>=0) paintSeg(pno,ovl);                     // current segment may live here
     positionGutter();                                 // exact page height may shift blocks
   }catch(e){
     el.textContent='page '+(pno+1)+' failed to render';
@@ -293,9 +295,10 @@ const io=new IntersectionObserver(entries=>{
 },{rootMargin:'140% 0px 140% 0px'});
 
 /* ---------- highlight sync ---------- */
-let cur=-1;                    // current chunk index (into chunks), -1 = none
-let follow=true, lastUserScroll=0, followT=null;
+let cur=-1, curSeg=-1;         // current chunk + sentence segment, -1 = none
+let follow=true, lastUserScroll=0;
 const SCROLL_FORGIVE_MS=8000;
+const CONF_PAGE_ONLY=0.6;      // mirrors align.py: below this, rects are not painted
 
 function chunkAt(t){
   /* last timed chunk whose t_start <= t; the 0.18 s build gap between chunks
@@ -308,22 +311,41 @@ function chunkAt(t){
   return ans<0?-1:timed[ans].i;
 }
 
-function paintChunk(pno,ovl){
-  /* add this page's share of the current chunk's highlight (called on chunk
-     change for rendered pages and on render for the current page) */
+function segAt(c,t){
+  /* which sentence of the chunk is being spoken at time t. There are no
+     per-word audio timestamps; position within the chunk is interpolated by
+     character fraction (f0/f1), which matches Kokoro's steady pace closely
+     enough that the highlight reads as following the voice */
+  if(!c||c.t_start==null||!c.segs||!c.segs.length) return -1;
+  const dur=c.t_end-c.t_start;
+  const pos=dur>0?(t-c.t_start)/dur:0;
+  for(let si=0;si<c.segs.length;si++){
+    if(pos<c.segs[si].f1||si===c.segs.length-1) return si;
+  }
+  return c.segs.length-1;
+}
+
+function paintSeg(pno,ovl){
+  /* paint the current segment's share of this page (called on segment change
+     for rendered pages and on render for the current page) */
   const c=chunks[cur]; if(!c) return;
+  const s=(c.segs||[])[curSeg]; if(!s) return;
   const d=dims[pno]; if(!d) return;
   const sc=colW/d.w;
-  if(c.page_only===pno){
-    const el=document.createElement('div');
-    el.className='hl-page'; el.dataset.ci=cur;
-    el.style.cssText='left:6px;top:6px;right:6px;bottom:6px;position:absolute';
-    ovl.appendChild(el);
+  const precise=s.rects&&s.rects.length&&s.conf>=CONF_PAGE_ONLY;
+  if(!precise){
+    if(s.page_only===pno){
+      const el=document.createElement('div');
+      el.className='hl-page';
+      el.style.cssText='left:6px;top:6px;right:6px;bottom:6px;position:absolute';
+      ovl.appendChild(el);
+    }
+    return;
   }
-  for(const r of (c.rects||[])){
+  for(const r of s.rects){
     if(r.page!==pno) continue;
     const el=document.createElement('div');
-    el.className='hl'; el.dataset.ci=cur;
+    el.className='hl';
     /* PyMuPDF coordinates are already top-left origin, y down: no flip */
     el.style.left=(r.x0*sc-2)+'px'; el.style.top=(r.y0*sc-1.5)+'px';
     el.style.width=((r.x1-r.x0)*sc+4)+'px'; el.style.height=((r.y1-r.y0)*sc+3)+'px';
@@ -341,33 +363,30 @@ function clearHighlights(){
   }
 }
 
-function followTo(c){
-  const pno=c.page_only!=null?c.page_only:(c.rects&&c.rects.length?c.rects[0].page:null);
+function followTo(c,s){
+  const precise=s&&s.rects&&s.rects.length&&s.conf>=CONF_PAGE_ONLY;
+  const pno=precise?s.rects[0].page:(s?s.page_only:null);
   if(pno==null||!pgEls[pno]) return;
   const el=pgEls[pno], d=dims[pno], sc=d?colW/d.w:1;
-  let y=el.offsetTop;
-  if(c.rects&&c.rects.length){
-    const r=c.rects.find(r=>r.page===pno)||c.rects[0];
-    y+=r.y0*sc;
-  }
-  const target=y-window.innerHeight*0.35;
-  const first=c.rects&&c.rects.length?c.rects[0]:null;
-  const firstY=first?el.offsetTop+first.y0*sc:el.offsetTop;
+  const firstY=el.offsetTop+(precise?s.rects[0].y0*sc:0);
   const vh=window.innerHeight;
   /* already comfortably visible? then stay put */
   if(firstY>window.scrollY+vh*0.2 && firstY<window.scrollY+vh*0.75) return;
   const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  window.scrollTo({top:Math.max(0,target),behavior:reduce?'auto':'smooth'});
+  window.scrollTo({top:Math.max(0,firstY-vh*0.35),behavior:reduce?'auto':'smooth'});
 }
 
 function onTime(){
   if(!timed.length) return;
   const ci=chunkAt(audio.currentTime);
-  if(ci===cur) return;
-  cur=ci; clearHighlights();
+  const c=ci>=0?chunks[ci]:null;
+  const si=c?segAt(c,audio.currentTime):-1;
+  if(ci===cur&&si===curSeg) return;
+  cur=ci; curSeg=si; clearHighlights();
   if(cur<0) return;
-  for(const [pno,{ovl}] of rendered) if(ovl) paintChunk(pno,ovl);
-  if(follow && performance.now()-lastUserScroll>SCROLL_FORGIVE_MS) followTo(chunks[cur]);
+  for(const [pno,{ovl}] of rendered) if(ovl) paintSeg(pno,ovl);
+  if(follow && performance.now()-lastUserScroll>SCROLL_FORGIVE_MS)
+    followTo(c,(c.segs||[])[si]);
 }
 audio.addEventListener('timeupdate',onTime);
 audio.addEventListener('seeked',onTime);
@@ -387,7 +406,7 @@ fbtn.addEventListener('click',()=>{
   follow=!follow;
   fbtn.classList.toggle('on',follow);
   fbtn.setAttribute('aria-pressed',String(follow));
-  if(follow&&cur>=0) followTo(chunks[cur]);
+  if(follow&&cur>=0) followTo(chunks[cur],(chunks[cur].segs||[])[curSeg]);
 });
 
 /* ---------- click-to-seek ---------- */
@@ -399,18 +418,21 @@ pagesEl.addEventListener('click',e=>{
   const cands=pageMap.get(pno)||[];
   let hit=null, pageHit=null;
   for(const cand of cands){
-    if(cand.pageOnly){ if(pageHit==null) pageHit=cand.ci; continue; }
+    if(cand.pageOnly){ if(pageHit==null) pageHit=cand; continue; }
     for(const r of cand.rects){
-      if(px>=r.x0-1&&px<=r.x1+1&&py>=r.y0-1&&py<=r.y1+1){ hit=cand.ci; break; }
+      if(px>=r.x0-1&&px<=r.x1+1&&py>=r.y0-1&&py<=r.y1+1){ hit=cand; break; }
     }
-    if(hit!=null) break;
+    if(hit) break;
   }
-  const ci=hit!=null?hit:pageHit;
-  if(ci==null) return;
+  const cand=hit||pageHit;
+  if(!cand) return;
+  const ci=cand.ci;
   selectChunk(ci);
-  const c=chunks[ci];
+  const c=chunks[ci], s=(c.segs||[])[cand.si];
   if(c.t_start==null) return;
-  audio.currentTime=c.t_start+0.02;
+  /* seek to the estimated start of the clicked SENTENCE, not the chunk */
+  const dur=c.t_end-c.t_start;
+  audio.currentTime=c.t_start+(s?s.f0*dur:0)+0.02;
   if(audio.paused) audio.play().catch(()=>{});
 });
 

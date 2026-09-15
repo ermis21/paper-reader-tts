@@ -368,3 +368,22 @@ live in a sibling subtree that may be torn down freely. The existing
   `quote`-based re-anchor pass for re-extracted papers.
 - **Phase 4 — Hardening.** jsdom tests, lint row for alignment confidence,
   README/THIRD_PARTY_LICENCES updates.
+
+## Addendum: Alignment v2 (highlighting overhaul, 2026-09-14)
+
+The v1 chunk-level highlight sat static for a median 22.8 s per chunk, and
+its block-merged rects painted over citation-stripped lines. Version 2:
+
+- Each chunk carries **`segs`**: sentence sub-segments with their own char
+  range, per-line rects, confidence and `page_only` fallback. The reader
+  interpolates position within a chunk by **character fraction** (`f0`/`f1`)
+  — Kokoro's pace within a chunk is steady enough that the highlight moves
+  sentence-by-sentence with the voice. No re-synthesis, no per-word audio
+  timestamps.
+- Rects are **per-line, coverage-filtered** (`COVER_MIN = 0.35`): a PDF line
+  that is mostly a stripped citation earns no rect, and kept lines union only
+  their *matched* words' boxes. No cross-line merging — highlight blocks and
+  citation holes read exactly as they sound.
+- Click-to-seek targets the estimated **sentence** start (`t_start + f0·dur`).
+- Chunk-level `rects`/`conf`/`page_only` remain for note anchors and the
+  gutter; the endpoint rebuilds v1 files automatically on version mismatch.
