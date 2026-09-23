@@ -266,11 +266,35 @@ def reader(pid: str):
     return (ROOT / "static" / "reader.html").read_text()
 
 
-# Vendored client-side libraries (pdf.js -- see THIRD_PARTY_LICENCES.md). Nothing
-# else under static/ is served: the two pages are delivered inline by the routes
-# above, and everything a reader needs beyond them comes from /api and /pdf.
+# Vendored client-side libraries (pdf.js -- see THIRD_PARTY_LICENCES.md), plus the
+# generated icon set (see make_icons.py). Nothing else under static/ is served: the
+# two pages are delivered inline by the routes above, and everything a reader needs
+# beyond them comes from /api and /pdf.
 app.mount("/static/vendor",
           StaticFiles(directory=ROOT / "static" / "vendor"), name="vendor")
+app.mount("/static/icons",
+          StaticFiles(directory=ROOT / "static" / "icons"), name="icons")
+
+
+# Browsers and iOS ask for these three at the *root* of the origin whatever the
+# pages happen to link to, so they need routes of their own: a tab that only
+# linked /static/icons/favicon.ico would still send GET /favicon.ico.
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return FileResponse(ROOT / "static" / "icons" / "favicon.ico",
+                        media_type="image/vnd.microsoft.icon")
+
+
+@app.get("/apple-touch-icon.png", include_in_schema=False)
+def apple_touch_icon():
+    return FileResponse(ROOT / "static" / "icons" / "apple-touch-icon.png",
+                        media_type="image/png")
+
+
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def webmanifest():
+    return FileResponse(ROOT / "static" / "icons" / "manifest.webmanifest",
+                        media_type="application/manifest+json")
 
 
 # ---------------- library ----------------

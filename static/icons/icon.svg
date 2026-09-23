@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Paper Audiobook">
+  <title>Paper Audiobook</title>
+  <rect width="512" height="512" rx="112" fill="#0F6B5A"/>
+  <rect x="150" y="110" width="212" height="292" rx="22" fill="#F4F6F2"/>
+  <path d="M222 206 L322 256 L222 306 Z" fill="#0F6B5A"/>
+</svg>
